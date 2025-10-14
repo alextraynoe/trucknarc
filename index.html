@@ -7,7 +7,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>🚚 Truck Data Manager</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAW0nFg2MZVire4Pk2TbxGZh5U0dTLz-OM"></script>
     <style>
         * {
             margin: 0;
@@ -101,19 +100,19 @@
 
         .controls {
             display: flex;
-            gap: 8px;
-            margin-bottom: 15px;
+            gap: 6px;
+            margin-bottom: 10px;
             flex-wrap: wrap;
             align-items: center;
         }
 
         .btn {
-            padding: 10px 14px;
+            padding: 8px 12px;
             background: linear-gradient(135deg, #5a7fa7 0%, #4a6f97 100%);
             border: none;
             border-radius: 6px;
             color: white;
-            font-size: 0.85em;
+            font-size: 0.8em;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -140,9 +139,9 @@
 
         .filters {
             display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            padding: 12px;
+            gap: 8px;
+            margin-bottom: 10px;
+            padding: 10px;
             background: white;
             border-radius: 6px;
             flex-wrap: wrap;
@@ -152,7 +151,7 @@
         .filter-section {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             flex: 1 1 100%;
             min-width: 0;
         }
@@ -160,7 +159,7 @@
         .filter-section label {
             font-weight: bold;
             color: #1e3c72;
-            font-size: 0.9em;
+            font-size: 0.85em;
         }
 
         .filter-item {
@@ -260,7 +259,7 @@
             background: white;
             border-radius: 6px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            max-height: 600px;
+            max-height: 500px;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
@@ -268,15 +267,15 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 600px;
+            min-width: 500px;
             background: white;
         }
 
         th, td {
-            padding: 10px 8px;
+            padding: 6px 4px;
             text-align: left;
             border-bottom: 1px solid #e0e0e0;
-            font-size: 13px;
+            font-size: 10px;
             white-space: nowrap;
             position: relative;
         }
@@ -290,7 +289,7 @@
             z-index: 10;
             cursor: pointer;
             user-select: none;
-            font-size: 12px;
+            font-size: 9px;
         }
 
         th:active {
@@ -323,36 +322,36 @@
         }
 
         .row-gray {
-            background: #e9ecef !important;
-            opacity: 0.7;
+            background: #e8d5f0 !important;
+            opacity: 0.9;
         }
 
         .status-bar {
             background: white;
-            padding: 12px;
+            padding: 8px;
             border-radius: 6px;
-            margin-top: 15px;
+            margin-top: 10px;
             display: flex;
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .status-item {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             flex: 1 1 auto;
-            min-width: 120px;
+            min-width: 100px;
             justify-content: center;
         }
 
         .status-badge {
-            padding: 8px 12px;
+            padding: 6px 10px;
             border-radius: 12px;
             font-weight: bold;
-            font-size: 0.85em;
+            font-size: 0.8em;
             white-space: nowrap;
         }
 
@@ -378,18 +377,18 @@
 
         .pagination {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
             justify-content: center;
-            margin-top: 15px;
-            padding: 12px;
+            margin-top: 10px;
+            padding: 8px;
             background: white;
             border-radius: 6px;
             flex-wrap: wrap;
         }
 
         .pagination button {
-            padding: 10px 16px;
+            padding: 8px 12px;
             background: #5a7fa7;
             border: none;
             border-radius: 6px;
@@ -397,6 +396,7 @@
             cursor: pointer;
             font-weight: bold;
             min-height: 44px;
+            font-size: 0.85em;
         }
 
         .pagination button:disabled {
@@ -409,16 +409,18 @@
         }
 
         .pagination select {
-            padding: 10px;
+            padding: 8px;
             border: 2px solid #5a7fa7;
             border-radius: 4px;
             min-height: 44px;
+            font-size: 0.85em;
         }
 
         .pagination span {
             font-weight: bold;
             text-align: center;
             flex: 1 1 100%;
+            font-size: 0.85em;
         }
 
         .chart-section {
@@ -484,28 +486,21 @@
         .totals-bar {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: white;
-            padding: 15px 12px;
+            padding: 10px 8px;
             border-radius: 6px;
-            margin-top: 15px;
+            margin-top: 10px;
             font-weight: bold;
             display: flex;
             justify-content: space-around;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
         }
 
         .total-item {
-            font-size: 0.9em;
+            font-size: 0.85em;
             text-align: center;
             flex: 1 1 auto;
-            min-width: 150px;
-        }
-
-        #map {
-            width: 100%;
-            height: 400px;
-            border-radius: 6px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-width: 130px;
         }
 
         .settings-panel {
@@ -627,7 +622,7 @@
         }
 
         .discrepancy-table {
-            font-size: 12px;
+            font-size: 9px;
             width: 100%;
             border-collapse: collapse;
         }
@@ -635,15 +630,15 @@
         .discrepancy-table th {
             background: #1e3c72;
             color: white;
-            padding: 8px 6px;
-            font-size: 11px;
+            padding: 5px 4px;
+            font-size: 8px;
             text-align: left;
         }
 
         .discrepancy-table td {
-            padding: 6px;
+            padding: 4px;
             border-bottom: 1px solid #ddd;
-            font-size: 11px;
+            font-size: 9px;
         }
 
         .discrepancy-table tr:hover {
@@ -769,31 +764,35 @@
         @media (max-width: 768px) {
             body {
                 padding: 5px;
-                font-size: 13px;
+                font-size: 11px;
             }
 
             h1 {
-                font-size: 1.3em;
+                font-size: 1.2em;
             }
 
             .tab-button {
-                padding: 10px 12px;
-                font-size: 0.8em;
-                min-width: 70px;
+                padding: 8px 10px;
+                font-size: 0.75em;
+                min-width: 65px;
             }
 
             .btn {
-                font-size: 0.8em;
-                padding: 10px 12px;
+                font-size: 0.75em;
+                padding: 8px 10px;
             }
 
             th, td {
-                font-size: 11px;
-                padding: 8px 6px;
+                font-size: 9px;
+                padding: 5px 3px;
+            }
+
+            th {
+                font-size: 8px;
             }
 
             .filters {
-                padding: 10px;
+                padding: 8px;
             }
 
             .filter-section {
@@ -801,52 +800,102 @@
             }
 
             .status-item {
-                min-width: 100px;
+                min-width: 90px;
             }
 
             .status-badge {
-                font-size: 0.75em;
-                padding: 6px 10px;
+                font-size: 0.7em;
+                padding: 5px 8px;
             }
 
             .total-item {
-                font-size: 0.8em;
-                min-width: 120px;
+                font-size: 0.75em;
+                min-width: 110px;
             }
 
             .table-container {
-                max-height: 500px;
-            }
-
-            #map {
-                height: 350px;
+                max-height: 600px;
             }
 
             .chart-canvas-container {
                 overflow-x: auto;
             }
+
+            .dataset-section h3 {
+                font-size: 1em;
+            }
+
+            .dataset-section p {
+                font-size: 0.85em;
+            }
+
+            .discrepancy-table {
+                font-size: 8px;
+            }
+
+            .discrepancy-table th {
+                font-size: 7px;
+                padding: 4px 3px;
+            }
+
+            .discrepancy-table td {
+                font-size: 8px;
+                padding: 3px;
+            }
         }
 
         @media (max-width: 480px) {
             body {
-                font-size: 12px;
+                font-size: 10px;
             }
 
             h1 {
-                font-size: 1.2em;
+                font-size: 1.1em;
             }
 
             .tab-button {
-                font-size: 0.75em;
-                padding: 8px 10px;
+                font-size: 0.7em;
+                padding: 7px 8px;
+            }
+
+            th, td {
+                font-size: 8px;
+                padding: 4px 2px;
+            }
+
+            th {
+                font-size: 7px;
+            }
+
+            .status-badge {
+                font-size: 0.65em;
+                padding: 4px 6px;
+            }
+
+            .total-item {
+                font-size: 0.7em;
             }
 
             .money-emoji {
-                font-size: 2em;
+                font-size: 1.8em;
             }
 
             .money-header h2 {
-                font-size: 1.2em;
+                font-size: 1.1em;
+            }
+
+            .discrepancy-table {
+                font-size: 7px;
+            }
+
+            .discrepancy-table th {
+                font-size: 6px;
+                padding: 3px 2px;
+            }
+
+            .discrepancy-table td {
+                font-size: 7px;
+                padding: 2px;
             }
         }
     </style>
@@ -865,7 +914,6 @@
             <button class="tab-button" onclick="switchTab('new-money')">💰 NEW MONEY</button>
             <button class="tab-button" onclick="switchTab('discrepancies')">⚠️ DISC</button>
             <button class="tab-button" onclick="switchTab('fun-facts')">🎉 FACTS</button>
-            <button class="tab-button" onclick="switchTab('map')">🗺️ MAP</button>
             <button class="tab-button" onclick="switchTab('charts')">📊 CHARTS</button>
             <button class="tab-button" onclick="switchTab('settings')">⚙️ SET</button>
         </div>
@@ -1204,39 +1252,6 @@
             <div id="fun-facts-container" style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 20px;"></div>
         </div>
 
-        <!-- MAP Tab -->
-        <div id="map-tab" class="tab-content">
-            <div class="controls">
-                <button class="btn btn-primary" onclick="initializeMap()">🗺️ Load Map</button>
-            </div>
-            <div class="filters">
-                <div class="filter-section">
-                    <label>Filters</label>
-                    <div class="filter-item">
-                        <select id="map-date-filter" onchange="updateMapMarkers()">
-                            <option value="">All Dates</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="filter-section">
-                    <label>Show Datasets</label>
-                    <div class="filter-item">
-                        <input type="checkbox" id="map-show-at" checked onchange="updateMapMarkers()">
-                        <label for="map-show-at">🔴 AT</label>
-                    </div>
-                    <div class="filter-item">
-                        <input type="checkbox" id="map-show-at-nyc" checked onchange="updateMapMarkers()">
-                        <label for="map-show-at-nyc">🔵 AT NYC</label>
-                    </div>
-                    <div class="filter-item">
-                        <input type="checkbox" id="map-show-mbt" checked onchange="updateMapMarkers()">
-                        <label for="map-show-mbt">🟢 MBT</label>
-                    </div>
-                </div>
-            </div>
-            <div id="map"></div>
-        </div>
-
         <!-- CHARTS Tab -->
         <div id="charts" class="tab-content">
             <div class="chart-section">
@@ -1367,8 +1382,6 @@
         let globalChart = null;
         let currentChartType = 'pie';
         let autoRefreshInterval = null;
-        let map = null;
-        let markers = [];
         let filterDebounceTimers = {};
 
         const extraNYCFields = [
@@ -1480,7 +1493,7 @@
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
             
-            const tabElement = tabName === 'map' ? document.getElementById('map-tab') : document.getElementById(tabName);
+            const tabElement = document.getElementById(tabName);
             tabElement.classList.add('active');
             event.target.classList.add('active');
 
@@ -2417,107 +2430,6 @@
             mismatchesDiv.innerHTML = mismatchesHTML || '<p style="color: #27ae60; font-weight: bold;">✅ No payment mismatches found!</p>';
             paidNotFullDiv.innerHTML = paidNotFullHTML || '<p style="color: #27ae60; font-weight: bold;">✅ All paid amounts match "Paid in Full" status!</p>';
             orphanedDiv.innerHTML = orphanedHTML || '<p style="color: #27ae60; font-weight: bold;">✅ No orphaned payments found!</p>';
-        }
-
-        function initializeMap() {
-            if (!map) {
-                map = new google.maps.Map(document.getElementById('map'), {
-                    center: { lat: 40.7128, lng: -74.0060 },
-                    zoom: 11
-                });
-            }
-
-            const uniqueDates = new Set();
-            ['at', 'at-nyc', 'mbt'].forEach(tab => {
-                appData[tab].merged.forEach(row => {
-                    if (row['Violation Date']) {
-                        uniqueDates.add(row['Violation Date']);
-                    }
-                });
-            });
-
-            const dateSelect = document.getElementById('map-date-filter');
-            dateSelect.innerHTML = '<option value="">All Dates</option>';
-            [...uniqueDates].sort().reverse().forEach(date => {
-                dateSelect.innerHTML += `<option value="${date}">${date}</option>`;
-            });
-
-            updateMapMarkers();
-        }
-
-        function updateMapMarkers() {
-            markers.forEach(marker => marker.setMap(null));
-            markers = [];
-
-            const showAT = document.getElementById('map-show-at').checked;
-            const showATNYC = document.getElementById('map-show-at-nyc').checked;
-            const showMBT = document.getElementById('map-show-mbt').checked;
-            const selectedDate = document.getElementById('map-date-filter')?.value || '';
-
-            const datasets = [
-                { tab: 'at', color: 'red', show: showAT },
-                { tab: 'at-nyc', color: 'blue', show: showATNYC },
-                { tab: 'mbt', color: 'green', show: showMBT }
-            ];
-
-            datasets.forEach(dataset => {
-                if (!dataset.show) return;
-                
-                const data = appData[dataset.tab].merged;
-                data.forEach(row => {
-                    if (selectedDate && row['Violation Date'] !== selectedDate) {
-                        return;
-                    }
-
-                    const house = row['Violation Location (House #)'];
-                    const street = row['Violation Location (Street Name)'];
-                    const city = row['Violation Location (City)'] || 'New York';
-
-                    if (house && street) {
-                        const address = `${house} ${street}, ${city}, NY`;
-                        geocodeAddress(address, row, dataset.tab, dataset.color);
-                    }
-                });
-            });
-        }
-
-        function geocodeAddress(address, row, tab, color) {
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ address: address }, (results, status) => {
-                if (status === 'OK' && results[0]) {
-                    const marker = new google.maps.Marker({
-                        map: map,
-                        position: results[0].geometry.location,
-                        title: `${tab.toUpperCase()}: ${row['Summons Number']}`,
-                        icon: {
-                            path: google.maps.SymbolPath.CIRCLE,
-                            scale: 8,
-                            fillColor: color,
-                            fillOpacity: 0.8,
-                            strokeColor: 'white',
-                            strokeWeight: 2
-                        }
-                    });
-
-                    const infoWindow = new google.maps.InfoWindow({
-                        content: `
-                            <div style="color: black;">
-                                <strong>Dataset:</strong> ${tab.toUpperCase()}<br>
-                                <strong>Summons:</strong> ${row['Summons Number']}<br>
-                                <strong>Location:</strong> ${address}<br>
-                                <strong>Payment Status:</strong> ${row['Payment Status'] || 'N/A'}<br>
-                                <strong>Paid Amount:</strong> ${row['Paid Amount'] || 'N/A'}
-                            </div>
-                        `
-                    });
-
-                    marker.addListener('click', () => {
-                        infoWindow.open(map, marker);
-                    });
-
-                    markers.push(marker);
-                }
-            });
         }
 
         function setChartType(type) {
