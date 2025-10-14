@@ -914,6 +914,7 @@
             <button class="tab-button" onclick="switchTab('new-money')">💰 NEW MONEY</button>
             <button class="tab-button" onclick="switchTab('discrepancies')">⚠️ DISC</button>
             <button class="tab-button" onclick="switchTab('trends')">📈 TRENDS</button>
+            <button class="tab-button" onclick="switchTab('changes')">🔄 CHANGES</button>
             <button class="tab-button" onclick="switchTab('fun-facts')">🎉 FACTS</button>
             <button class="tab-button" onclick="switchTab('charts')">📊 CHARTS</button>
             <button class="tab-button" onclick="switchTab('settings')">⚙️ SET</button>
@@ -1325,6 +1326,58 @@
             </div>
         </div>
 
+        <!-- CHANGES Tab -->
+        <div id="changes" class="tab-content">
+            <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                <h3 style="color: #1e3c72; margin-bottom: 12px;">🔄 Data Change Tracking</h3>
+                <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">Track what changes between data refreshes - new summonses, status updates, and payment changes.</p>
+                
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="viewAllChanges()">📋 View All Changes</button>
+                    <button class="btn" onclick="filterChangesByType('status')">Status Changes</button>
+                    <button class="btn" onclick="filterChangesByType('payment')">Payment Changes</button>
+                    <button class="btn" onclick="filterChangesByType('new')">New Summonses</button>
+                    <button class="btn btn-danger" onclick="clearChangeHistory()">🗑️ Clear History</button>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                <div style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); padding: 15px; border-radius: 6px; text-align: center; color: white;">
+                    <div style="font-size: 0.8em; opacity: 0.9;">Total Changes</div>
+                    <div style="font-size: 1.8em; font-weight: bold; margin: 8px 0;" id="changes-total">0</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); padding: 15px; border-radius: 6px; text-align: center; color: white;">
+                    <div style="font-size: 0.8em; opacity: 0.9;">Status Changes</div>
+                    <div style="font-size: 1.8em; font-weight: bold; margin: 8px 0;" id="changes-status">0</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); padding: 15px; border-radius: 6px; text-align: center; color: white;">
+                    <div style="font-size: 0.8em; opacity: 0.9;">Payment Updates</div>
+                    <div style="font-size: 1.8em; font-weight: bold; margin: 8px 0;" id="changes-payment">0</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); padding: 15px; border-radius: 6px; text-align: center; color: white;">
+                    <div style="font-size: 0.8em; opacity: 0.9;">New Summonses</div>
+                    <div style="font-size: 1.8em; font-weight: bold; margin: 8px 0;" id="changes-new">0</div>
+                </div>
+            </div>
+
+            <!-- Last Refresh Info -->
+            <div style="background: #e8f4f8; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #3498db;">
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.85em;">
+                    <div><strong>Last Refresh:</strong> <span id="last-refresh-time">Never</span></div>
+                    <div><strong>Changes Detected:</strong> <span id="last-refresh-changes">0</span></div>
+                </div>
+            </div>
+
+            <!-- Changes Timeline -->
+            <div style="background: white; padding: 15px; border-radius: 6px;">
+                <h4 style="color: #1e3c72; margin-bottom: 15px; font-size: 1em;">📅 Change History Timeline</h4>
+                <div id="changes-timeline" style="max-height: 600px; overflow-y: auto;">
+                    <p style="text-align: center; color: #666; padding: 40px;">No changes tracked yet. Refresh your data to start tracking changes.</p>
+                </div>
+            </div>
+        </div>
+
         <!-- FUN FACTS Tab -->
         <div id="fun-facts" class="tab-content">
             <div class="controls">
@@ -1577,6 +1630,8 @@
         let currentChartType = 'pie';
         let autoRefreshInterval = null;
         let filterDebounceTimers = {};
+        let changeHistory = [];
+        let currentChangeFilter = 'all';
 
         const extraNYCFields = [
             'Violation Time', 'Issuing Agency', 'Respondent First Name', 'Respondent Last Name',
@@ -1673,6 +1728,7 @@
         window.onload = function() {
             loadSheetURLs();
             loadFromStorage();
+            loadChangeHistory();
             startAutoRefresh();
         };
 
@@ -1693,6 +1749,8 @@
 
             if (tabName === 'new-money') {
                 renderNewMoney();
+            } else if (tabName === 'changes') {
+                renderChangesView();
             }
         }
 
@@ -1762,8 +1820,330 @@
             }
         }
 
+        // ===== CHANGE TRACKING FUNCTIONS =====
+        function detectChanges(oldData) {
+            const timestamp = new Date().toISOString();
+            const changes = [];
+
+            ['at', 'at-nyc', 'mbt'].forEach(tab => {
+                const oldRecords = oldData[tab] || [];
+                const newRecords = appData[tab].merged;
+
+                // Create maps for faster lookup
+                const oldMap = {};
+                oldRecords.forEach(row => {
+                    const summonsNum = (row['Summons Number'] || '').trim();
+                    if (summonsNum) oldMap[summonsNum] = row;
+                });
+
+                const newMap = {};
+                newRecords.forEach(row => {
+                    const summonsNum = (row['Summons Number'] || '').trim();
+                    if (summonsNum) newMap[summonsNum] = row;
+                });
+
+                // Detect new summonses
+                Object.keys(newMap).forEach(summonsNum => {
+                    if (!oldMap[summonsNum]) {
+                        changes.push({
+                            timestamp: timestamp,
+                            dataset: tab.toUpperCase(),
+                            type: 'new',
+                            summonsNumber: summonsNum,
+                            companyName: newMap[summonsNum]['Company Name'] || 'Unknown',
+                            description: 'New summons added',
+                            details: {
+                                violationDate: newMap[summonsNum]['Violation Date'],
+                                status: newMap[summonsNum]['Status']
+                            }
+                        });
+                    }
+                });
+
+                // Detect changes in existing summonses
+                Object.keys(oldMap).forEach(summonsNum => {
+                    if (newMap[summonsNum]) {
+                        const oldRow = oldMap[summonsNum];
+                        const newRow = newMap[summonsNum];
+
+                        // Check for status changes
+                        const oldPaymentStatus = (oldRow['Payment Status'] || '').trim();
+                        const newPaymentStatus = (newRow['Payment Status'] || '').trim();
+                        if (oldPaymentStatus !== newPaymentStatus) {
+                            changes.push({
+                                timestamp: timestamp,
+                                dataset: tab.toUpperCase(),
+                                type: 'status',
+                                summonsNumber: summonsNum,
+                                companyName: newRow['Company Name'] || 'Unknown',
+                                description: 'Payment status changed',
+                                details: {
+                                    from: oldPaymentStatus || 'Unpaid',
+                                    to: newPaymentStatus || 'Unpaid'
+                                }
+                            });
+                        }
+
+                        // Check for hearing status changes
+                        const oldHearingStatus = (oldRow['Hearing Status'] || '').trim();
+                        const newHearingStatus = (newRow['Hearing Status'] || '').trim();
+                        if (oldHearingStatus !== newHearingStatus && newHearingStatus) {
+                            changes.push({
+                                timestamp: timestamp,
+                                dataset: tab.toUpperCase(),
+                                type: 'status',
+                                summonsNumber: summonsNum,
+                                companyName: newRow['Company Name'] || 'Unknown',
+                                description: 'Hearing status changed',
+                                details: {
+                                    from: oldHearingStatus || 'None',
+                                    to: newHearingStatus
+                                }
+                            });
+                        }
+
+                        // Check for payment amount changes
+                        const oldPaidAmount = parseFloat((oldRow['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                        const newPaidAmount = parseFloat((newRow['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                        if (!isNaN(oldPaidAmount) && !isNaN(newPaidAmount) && oldPaidAmount !== newPaidAmount) {
+                            changes.push({
+                                timestamp: timestamp,
+                                dataset: tab.toUpperCase(),
+                                type: 'payment',
+                                summonsNumber: summonsNum,
+                                companyName: newRow['Company Name'] || 'Unknown',
+                                description: 'Payment amount changed',
+                                details: {
+                                    from: `$${oldPaidAmount.toFixed(2)}`,
+                                    to: `$${newPaidAmount.toFixed(2)}`,
+                                    difference: `${newPaidAmount > oldPaidAmount ? '+' : ''}$${(newPaidAmount - oldPaidAmount).toFixed(2)}`
+                                }
+                            });
+                        }
+
+                        // Check for "Paid To Me" changes
+                        const oldPaidToMe = parseFloat((oldRow['Paid To Me'] || '0').replace(/[$,]/g, ''));
+                        const newPaidToMe = parseFloat((newRow['Paid To Me'] || '0').replace(/[$,]/g, ''));
+                        if (!isNaN(newPaidToMe) && newPaidToMe > 0 && oldPaidToMe !== newPaidToMe) {
+                            changes.push({
+                                timestamp: timestamp,
+                                dataset: tab.toUpperCase(),
+                                type: 'payment',
+                                summonsNumber: summonsNum,
+                                companyName: newRow['Company Name'] || 'Unknown',
+                                description: 'Payment received amount changed',
+                                details: {
+                                    from: `$${oldPaidToMe.toFixed(2)}`,
+                                    to: `$${newPaidToMe.toFixed(2)}`,
+                                    difference: `${newPaidToMe > oldPaidToMe ? '+' : ''}$${(newPaidToMe - oldPaidToMe).toFixed(2)}`
+                                }
+                            });
+                        }
+                    }
+                });
+            });
+
+            // Add changes to history
+            if (changes.length > 0) {
+                changeHistory.push({
+                    refreshTime: timestamp,
+                    changeCount: changes.length,
+                    changes: changes
+                });
+
+                // Keep only last 50 refresh sessions
+                if (changeHistory.length > 50) {
+                    changeHistory = changeHistory.slice(-50);
+                }
+
+                saveChangeHistory();
+                renderChangesView();
+            }
+        }
+
+        function renderChangesView() {
+            // Update summary cards
+            let totalChanges = 0;
+            let statusChanges = 0;
+            let paymentChanges = 0;
+            let newSummonses = 0;
+
+            changeHistory.forEach(session => {
+                session.changes.forEach(change => {
+                    totalChanges++;
+                    if (change.type === 'status') statusChanges++;
+                    if (change.type === 'payment') paymentChanges++;
+                    if (change.type === 'new') newSummonses++;
+                });
+            });
+
+            document.getElementById('changes-total').textContent = totalChanges;
+            document.getElementById('changes-status').textContent = statusChanges;
+            document.getElementById('changes-payment').textContent = paymentChanges;
+            document.getElementById('changes-new').textContent = newSummonses;
+
+            // Update last refresh info
+            if (changeHistory.length > 0) {
+                const lastSession = changeHistory[changeHistory.length - 1];
+                const refreshDate = new Date(lastSession.refreshTime);
+                document.getElementById('last-refresh-time').textContent = refreshDate.toLocaleString();
+                document.getElementById('last-refresh-changes').textContent = lastSession.changeCount;
+            }
+
+            // Render timeline
+            renderChangesTimeline();
+        }
+
+        function renderChangesTimeline() {
+            const timeline = document.getElementById('changes-timeline');
+            
+            if (changeHistory.length === 0) {
+                timeline.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No changes tracked yet. Refresh your data to start tracking changes.</p>';
+                return;
+            }
+
+            let html = '';
+
+            // Filter changes based on current filter
+            const filteredHistory = changeHistory.map(session => {
+                if (currentChangeFilter === 'all') {
+                    return session;
+                }
+                return {
+                    ...session,
+                    changes: session.changes.filter(change => change.type === currentChangeFilter)
+                };
+            }).filter(session => session.changes.length > 0);
+
+            // Reverse to show most recent first
+            filteredHistory.reverse().forEach((session, sessionIndex) => {
+                const sessionDate = new Date(session.refreshTime);
+                const isRecent = sessionIndex === 0;
+
+                html += `
+                    <div style="border-left: 3px solid ${isRecent ? '#27ae60' : '#3498db'}; padding-left: 15px; margin-bottom: 25px; position: relative;">
+                        <div style="position: absolute; left: -8px; top: 0; width: 13px; height: 13px; border-radius: 50%; background: ${isRecent ? '#27ae60' : '#3498db'}; border: 3px solid white;"></div>
+                        <div style="background: ${isRecent ? '#d4edda' : '#e8f4f8'}; padding: 10px; border-radius: 4px; margin-bottom: 12px;">
+                            <div style="font-weight: bold; color: #1e3c72; font-size: 0.9em;">
+                                📅 ${sessionDate.toLocaleString()}
+                            </div>
+                            <div style="color: #666; font-size: 0.85em; margin-top: 4px;">
+                                ${session.changes.length} change${session.changes.length !== 1 ? 's' : ''} detected
+                            </div>
+                        </div>
+                `;
+
+                session.changes.forEach(change => {
+                    const typeIcons = {
+                        'new': '✨',
+                        'status': '🔄',
+                        'payment': '💵'
+                    };
+                    const typeColors = {
+                        'new': '#9b59b6',
+                        'status': '#3498db',
+                        'payment': '#f39c12'
+                    };
+                    const typeIcon = typeIcons[change.type] || '📌';
+                    const typeColor = typeColors[change.type] || '#95a5a6';
+
+                    html += `
+                        <div style="background: white; padding: 12px; border-radius: 4px; margin-bottom: 8px; border-left: 3px solid ${typeColor}; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <div style="display: flex; gap: 10px; align-items: start;">
+                                <div style="font-size: 1.3em; line-height: 1;">${typeIcon}</div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: bold; color: #2c3e50; font-size: 0.85em; margin-bottom: 4px;">
+                                        ${change.description}
+                                    </div>
+                                    <div style="font-size: 0.8em; color: #666; margin-bottom: 6px;">
+                                        <strong>Summons:</strong> ${change.summonsNumber} | 
+                                        <strong>Company:</strong> ${change.companyName} | 
+                                        <strong>Dataset:</strong> ${change.dataset}
+                                    </div>
+                    `;
+
+                    if (change.details) {
+                        if (change.details.from !== undefined && change.details.to !== undefined) {
+                            html += `
+                                <div style="font-size: 0.8em; padding: 6px; background: #f8f9fa; border-radius: 3px;">
+                                    <span style="color: #e74c3c;">${change.details.from}</span>
+                                    <span style="margin: 0 6px;">→</span>
+                                    <span style="color: #27ae60; font-weight: bold;">${change.details.to}</span>
+                            `;
+                            if (change.details.difference) {
+                                html += ` <span style="margin-left: 8px; color: #666;">(${change.details.difference})</span>`;
+                            }
+                            html += `</div>`;
+                        } else if (change.details.violationDate) {
+                            html += `
+                                <div style="font-size: 0.8em; color: #666;">
+                                    <strong>Violation Date:</strong> ${change.details.violationDate}
+                                    ${change.details.status ? ` | <strong>Status:</strong> ${change.details.status}` : ''}
+                                </div>
+                            `;
+                        }
+                    }
+
+                    html += `
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            });
+
+            timeline.innerHTML = html;
+        }
+
+        function viewAllChanges() {
+            currentChangeFilter = 'all';
+            renderChangesTimeline();
+        }
+
+        function filterChangesByType(type) {
+            currentChangeFilter = type;
+            renderChangesTimeline();
+        }
+
+        function clearChangeHistory() {
+            if (!confirm('Are you sure you want to clear all change history? This cannot be undone.')) {
+                return;
+            }
+            changeHistory = [];
+            saveChangeHistory();
+            renderChangesView();
+        }
+
+        function saveChangeHistory() {
+            try {
+                localStorage.setItem('truckChanges', JSON.stringify(changeHistory));
+            } catch (e) {
+                console.error('Error saving change history:', e);
+            }
+        }
+
+        function loadChangeHistory() {
+            try {
+                const saved = localStorage.getItem('truckChanges');
+                if (saved) {
+                    changeHistory = JSON.parse(saved);
+                    renderChangesView();
+                }
+            } catch (e) {
+                console.error('Error loading change history:', e);
+            }
+        }
+
         async function loadAllData(silent = false) {
             if (!silent) updateProgress('at', 0, 'Loading data from Google Sheets...');
+            
+            // Store snapshot of old data for change detection
+            const oldData = {};
+            ['at', 'at-nyc', 'mbt'].forEach(tab => {
+                oldData[tab] = appData[tab].merged.map(row => ({...row}));
+            });
             
             for (const tab of ['at', 'at-nyc', 'mbt']) {
                 try {
@@ -1790,6 +2170,9 @@
                     console.error(`Error loading ${tab}:`, error);
                 }
             }
+
+            // Detect and log changes
+            detectChanges(oldData);
 
             saveToStorage();
             if (!silent) {
