@@ -1,0 +1,3304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚚 Truck Data Manager</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAW0nFg2MZVire4Pk2TbxGZh5U0dTLz-OM"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #2c3e50;
+            padding: 15px;
+            min-height: 100vh;
+            font-size: 11px;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+            border-radius: 8px 8px 0 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            font-size: 1.8em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 5px;
+            color: white;
+        }
+
+        .subtitle {
+            font-size: 0.9em;
+            opacity: 0.9;
+            color: white;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            background: #5a7fa7;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.9em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .tab-button:hover {
+            background: #4a6f97;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .tab-button.active {
+            background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(255, 140, 66, 0.4);
+        }
+
+        .tab-content {
+            display: none;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #5a7fa7 0%, #4a6f97 100%);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 0.85em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .filter-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-section label {
+            font-weight: bold;
+            color: #1e3c72;
+            font-size: 0.85em;
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .filter-item label {
+            cursor: pointer;
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 0.9em;
+        }
+
+        .filter-item select {
+            padding: 4px 8px;
+            border: 2px solid #5a7fa7;
+            border-radius: 4px;
+            font-size: 0.85em;
+            min-width: 150px;
+        }
+
+        .filter-item input[type="text"],
+        .filter-item input[type="number"] {
+            padding: 4px 8px;
+            border: 2px solid #5a7fa7;
+            border-radius: 4px;
+            font-size: 0.85em;
+            width: 150px;
+        }
+
+        .advanced-filter {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .progress-container {
+            display: none;
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .progress-container.show {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+
+        .progress-status {
+            margin-top: 8px;
+            color: #2c3e50;
+            font-weight: bold;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-height: 650px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+            background: white;
+        }
+
+        th, td {
+            padding: 4px 8px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 11px;
+            white-space: nowrap;
+            position: relative;
+        }
+
+        th {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            user-select: none;
+            font-size: 11px;
+        }
+
+        th:hover {
+            background: linear-gradient(135deg, #2a5298 0%, #3a62a8 100%);
+        }
+
+        th .sort-indicator {
+            margin-left: 4px;
+            font-size: 0.8em;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        tr:nth-child(odd) {
+            background: white;
+        }
+
+        tr:hover {
+            background: #e8f4f8;
+        }
+
+        .row-green {
+            background: #d4edda !important;
+        }
+
+        .row-yellow {
+            background: #fff3cd !important;
+        }
+
+        .row-red {
+            background: #f8d7da !important;
+        }
+
+        .cell-teal {
+            color: #17a2b8 !important;
+            font-weight: bold;
+        }
+
+        .status-bar {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+
+        .badge-green {
+            background: #27ae60;
+            color: white;
+        }
+
+        .badge-yellow {
+            background: #f39c12;
+            color: white;
+        }
+
+        .badge-red {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .badge-total {
+            background: #5a7fa7;
+            color: white;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+        }
+
+        .pagination button {
+            padding: 6px 12px;
+            background: #5a7fa7;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .pagination button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .pagination select {
+            padding: 6px;
+            border: 2px solid #5a7fa7;
+            border-radius: 4px;
+        }
+
+        .chart-section {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .chart-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .chart-control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .chart-control-group label {
+            font-weight: bold;
+            color: #1e3c72;
+            font-size: 0.9em;
+        }
+
+        .chart-controls select,
+        .chart-controls input {
+            padding: 8px;
+            border: 2px solid #5a7fa7;
+            border-radius: 4px;
+            background: white;
+            color: #2c3e50;
+            font-size: 0.85em;
+        }
+
+        .chart-canvas-container {
+            max-width: 800px;
+            margin: 20px auto;
+        }
+
+        .dataset-section {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .dataset-section h3 {
+            color: #1e3c72;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #ff8c42;
+            padding-bottom: 5px;
+        }
+
+        .totals-bar {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .total-item {
+            font-size: 1em;
+        }
+
+        #map {
+            width: 100%;
+            height: 600px;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .settings-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .settings-section {
+            margin-bottom: 25px;
+        }
+
+        .settings-section h3 {
+            color: #1e3c72;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            border-bottom: 2px solid #ff8c42;
+            padding-bottom: 8px;
+        }
+
+        .sheet-input-group {
+            margin-bottom: 15px;
+        }
+
+        .sheet-input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 0.9em;
+        }
+
+        .sheet-input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #5a7fa7;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .auto-refresh-indicator {
+            display: inline-block;
+            padding: 5px 10px;
+            background: #27ae60;
+            color: white;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+
+        .chart-type-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .chart-type-btn {
+            padding: 8px 16px;
+            background: #5a7fa7;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 0.85em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chart-type-btn.active {
+            background: #ff8c42;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .summary-card {
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .summary-card.overpaid {
+            background: #ffe6e6;
+            border: 2px solid #e74c3c;
+        }
+
+        .summary-card.underpaid {
+            background: #fff4e6;
+            border: 2px solid #ff8c42;
+        }
+
+        .summary-card.total {
+            background: #e6f2ff;
+            border: 2px solid #5a7fa7;
+        }
+
+        .summary-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .summary-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        /* Discrepancy table styles */
+        .discrepancy-table {
+            font-size: 10px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .discrepancy-table th {
+            background: #1e3c72;
+            color: white;
+            padding: 6px 8px;
+            font-size: 10px;
+            text-align: left;
+        }
+
+        .discrepancy-table td {
+            padding: 4px 8px;
+            border-bottom: 1px solid #ddd;
+            font-size: 10px;
+        }
+
+        .discrepancy-table tr:hover {
+            background: #f0f0f0;
+        }
+
+        .amount-negative {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .amount-positive {
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        /* Money-themed new money tab */
+        .money-header {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
+        }
+
+        .money-header h2 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .money-emoji {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .money-card {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 3px solid #27ae60;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .money-card h3 {
+            color: #155724;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .money-total {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
+        }
+
+        /* Column configuration modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #1e3c72;
+        }
+
+        .modal-header h2 {
+            color: #1e3c72;
+            margin: 0;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #000;
+        }
+
+        .column-config-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            gap: 15px;
+        }
+
+        .column-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            background: #5a7fa7;
+            border: none;
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .btn-small:hover:not(:disabled) {
+            background: #4a6f97;
+        }
+
+        .btn-small:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .column-name {
+            flex: 1;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .column-width-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .column-width-control label {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .width-input {
+            width: 80px;
+            padding: 4px 8px;
+            border: 2px solid #5a7fa7;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .modal-actions {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.3em;
+            }
+
+            .tab-button {
+                padding: 8px 16px;
+                font-size: 0.85em;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+            }
+
+            .column-config-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚚 Truck Data Manager</h1>
+            <p class="subtitle">Manage Your Idling Summons Data</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('at')">🚛 AT</button>
+            <button class="tab-button" onclick="switchTab('at-nyc')">🏙️ AT NYC</button>
+            <button class="tab-button" onclick="switchTab('mbt')">🚚 MBT</button>
+            <button class="tab-button" onclick="switchTab('new-money')">💰 NEW MONEY</button>
+            <button class="tab-button" onclick="switchTab('discrepancies')">⚠️ DISCREPANCIES</button>
+            <button class="tab-button" onclick="switchTab('fun-facts')">🎉 FUN FACTS</button>
+            <button class="tab-button" onclick="switchTab('map')">🗺️ MAP</button>
+            <button class="tab-button" onclick="switchTab('charts')">📊 CHARTS</button>
+            <button class="tab-button" onclick="switchTab('settings')">⚙️ SETTINGS</button>
+        </div>
+
+        <!-- AT Tab -->
+        <div id="at" class="tab-content active">
+            <div class="controls">
+                <button class="btn btn-primary" onclick="loadAllData()">🔄 Load All Data</button>
+                <button class="btn" onclick="refreshData('at')">🔄 Refresh AT</button>
+                <button class="btn btn-danger" onclick="clearData('at')">🗑️ Clear AT Data</button>
+                <span class="auto-refresh-indicator">Auto-Refresh: ON</span>
+                <div class="filter-item" style="margin-left: 20px;">
+                    <input type="checkbox" id="at-show-extra" onchange="toggleExtraColumns('at')">
+                    <label for="at-show-extra">Show Extra NYC Data</label>
+                </div>
+            </div>
+
+            <div class="progress-container" id="at-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="at-progress-fill" style="width: 0%">0%</div>
+                </div>
+                <div class="progress-status" id="at-progress-status">Initializing...</div>
+            </div>
+
+            <div class="filters" id="at-filters">
+                <div class="filter-section">
+                    <label>Visibility</label>
+                    <div class="filter-item">
+                        <input type="checkbox" id="at-filter-paid" checked onchange="debouncedApplyFilters('at')">
+                        <label for="at-filter-paid">Paid</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" id="at-filter-requested" checked onchange="debouncedApplyFilters('at')">
+                        <label for="at-filter-requested">Requested</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" id="at-filter-disqualified" checked onchange="debouncedApplyFilters('at')">
+                        <label for="at-filter-disqualified">Disqualified</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" id="at-filter-unpaid" checked onchange="debouncedApplyFilters('at')">
+                        <label for="at-filter-unpaid">Unpaid</label>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <label>Quick Filters</label>
+                    <div class="filter-item">
+                        <select id="at-filter-payment-status" onchange="debouncedApplyFilters('at')">
+                            <option value="">All Payment Status</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <select id="at-filter-hearing-status" onchange="debouncedApplyFilters('at')">
+                            <option value="">All Hearing Status</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <select id="at-filter-company" onchange="debouncedApplyFilters('at')">
+                            <option value="">All Companies</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="filter-section" style="flex: 1; min-width: 400px;">
+                    <label>Advanced Filter</label>
+                    <div class="advanced-filter">
+                        <select id="at-advanced-column" style="flex: 1;">
+                            <option value="">Select Column...</option>
+                        </select>
+                        <select id="at-advanced-operator">
+                            <option value="contains">Contains</option>
+                            <option value="equals">Equals</option>
+                            <option value="not_equals">Not Equals</option>
+                            <option value="greater">Greater Than</option>
+                            <option value="less">Less Than</option>
+                            <option value="starts">Starts With</option>
+                            <option value="ends">Ends With</option>
+                        </select>
+                        <input type="text" id="at-advanced-value" placeholder="Value..." onkeyup="debouncedApplyFilters('at')" style="flex: 1;">
+                        <button class="btn btn-danger" onclick="clearAdvancedFilter('at')" style="padding: 4px 8px;">Clear</button>
+                    </div>
+                    <div class="advanced-filter" style="margin-top: 5px;">
+                        <select id="at-advanced-column-2" style="flex: 1;">
+                            <option value="">Select Column...</option>
+                        </select>
+                        <select id="at-advanced-operator-2">
+                            <option value="contains">Contains</option>
+                            <option value="equals">Equals</option>
+                            <option value="not_equals">Not Equals</option>
+                            <option value="greater">Greater Than</option>
+                            <option value="less">Less Than</option>
+                            <option value="starts">Starts With</option>
+                            <option value="ends">Ends With</option>
+                        </select>
+                        <input type="text" id="at-advanced-value-2" placeholder="Value..." onkeyup="debouncedApplyFilters('at')" style="flex: 1;">
+                        <button class="btn btn-danger" onclick="clearAdvancedFilter2('at')" style="padding: 4px 8px;">Clear</button>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <label>Search</label>
+                    <div class="filter-item">
+                        <input type="text" id="at-filter-search" placeholder="Search all columns..." onkeyup="debouncedApplyFilters('at')" style="width: 200px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-bar" id="at-status"></div>
+
+            <div class="table-container" id="at-table-container">
+                <table id="at-table">
+                    <thead id="at-thead"></thead>
+                    <tbody id="at-tbody"></tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="at-pagination">
+                <button onclick="changePage('at', -1)">Previous</button>
+                <span id="at-page-info">Page 1</span>
+                <button onclick="changePage('at', 1)">Next</button>
+                <select id="at-page-size" onchange="changePageSize('at')">
+                    <option value="50">50 per page</option>
+                    <option value="100">100 per page</option>
+                    <option value="250">250 per page</option>
+                    <option value="500">500 per page</option>
+                    <option value="all" selected>Show All</option>
+                </select>
+            </div>
+
+            <div class="totals-bar" id="at-totals"></div>
+        </div>
+
+        <!-- AT NYC Tab -->
+        <div id="at-nyc" class="tab-content">
+            <div class="controls">
+                <button class="btn btn-primary" onclick="loadAllData()">🔄 Load All Data</button>
+                <button class="btn" onclick="refreshData('at-nyc')">🔄 Refresh AT NYC</button>
+                <button class="btn btn-danger" onclick="clearData('at-nyc')">🗑️ Clear AT NYC Data</button>
+                <span class="auto-refresh-indicator">Auto-Refresh: ON</span>
+                <div class="filter-item" style="margin-left: 20px;">
+                    <input type="checkbox" id="at-nyc-show-extra" onchange="toggleExtraColumns('at-nyc')">
+                    <label for="at-nyc-show-extra">Show Extra NYC Data</label>
+                </div>
+            </div>
+
+            <div class="progress-container" id="at-nyc-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="at-nyc-progress-fill" style="width: 0%">0%</div>
+                </div>
+                <div class="progress-status" id="at-nyc-progress-status">Initializing...</div>
+            </div>
+
+            <div class="filters" id="at-nyc-filters">
+                <div class="filter-section">
+                    <label>Visibility</label>
+                    <div class="filter-item">
+                        <input type="checkbox" id="at-nyc-filter-paid" checked onchange="debouncedApplyFilters('at-nyc')">
+                        <label for="at-nyc-filter-paid">Paid</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" id="at-nyc-filter-requested" checked onchange="debouncedApplyFilters('at-nyc')">
+                        <label for="at-nyc-filter-requested">Requested</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" id="at-nyc-filter-disqualified" checked onchange="debouncedApplyFilters('at-nyc')">
+                        <label for="at-nyc-filter-disqualified">Disqualified</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" id="at-nyc-filter-unpaid" checked onchange="debouncedApplyFilters('at-nyc')">
+                        <label for="at-nyc-filter-unpaid">Unpaid</label>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <label>Quick Filters</label>
+                    <div class="filter-item">
+                        <select id="at-nyc-filter-payment-status" onchange="debouncedApplyFilters('at-nyc')">
+                            <option value="">All Payment Status</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <select id="at-nyc-filter-hearing-status" onchange="debouncedApplyFilters('at-nyc')">
+                            <option value="">All Hearing Status</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <select id="at-nyc-filter-company" onchange="debouncedApplyFilters('at-nyc')">
+                            <option value="">All Companies</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="filter-section" style="flex: 1; min-width: 400px;">
+                    <label>Advanced Filter</label>
+                    <div class="advanced-filter">
+                        <select id="at-nyc-advanced-column" style="flex: 1;">
+                            <option value="">Select Column...</option>
+                        </select>
+                        <select id="at-nyc-advanced-operator">
+                            <option value="contains">Contains</option>
+                            <option value="equals">Equals</option>
+                            <option value="not_equals">Not Equals</option>
+                            <option value="greater">Greater Than</option>
+                            <option value="less">Less Than</option>
+                            <option value="starts">Starts With</option>
+                            <option value="ends">Ends With</option>
+                        </select>
+                        <input type="text" id="at-nyc-advanced-value" placeholder="Value..." onkeyup="debouncedApplyFilters('at-nyc')" style="flex: 1;">
+                        <button class="btn btn-danger" onclick="clearAdvancedFilter('at-nyc')" style="padding: 4px 8px;">Clear</button>
+                    </div>
+                    <div class="advanced-filter" style="margin-top: 5px;">
+                        <select id="at-nyc-advanced-column-2" style="flex: 1;">
+                            <option value="">Select Column...</option>
+                        </select>
+                        <select id="at-nyc-advanced-operator-2">
+                            <option value="contains">Contains</option>
+                            <option value="equals">Equals</option>
+                            <option value="not_equals">Not Equals</option>
+                            <option value="greater">Greater Than</option>
+                            <option value="less">Less Than</option>
+                            <option value="starts">Starts With</option>
+                            <option value="ends">Ends With</option>
+                        </select>
+                        <input type="text" id="at-nyc-advanced-value-2" placeholder="Value..." onkeyup="debouncedApplyFilters('at-nyc')" style="flex: 1;">
+                        <button class="btn btn-danger" onclick="clearAdvancedFilter2('at-nyc')" style="padding: 4px 8px;">Clear</button>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <label>Search</label>
+                    <div class="filter-item">
+                        <input type="text" id="at-nyc-filter-search" placeholder="Search all columns..." onkeyup="debouncedApplyFilters('at-nyc')" style="width: 200px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-bar" id="at-nyc-status"></div>
+
+            <div class="table-container" id="at-nyc-table-container">
+                <table id="at-nyc-table">
+                    <thead id="at-nyc-thead"></thead>
+                    <tbody id="at-nyc-tbody"></tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="at-nyc-pagination">
+                <button onclick="changePage('at-nyc', -1)">Previous</button>
+                <span id="at-nyc-page-info">Page 1</span>
+                <button onclick="changePage('at-nyc', 1)">Next</button>
+                <select id="at-nyc-page-size" onchange="changePageSize('at-nyc')">
+                    <option value="50">50 per page</option>
+                    <option value="100">100 per page</option>
+                    <option value="250">250 per page</option>
+                    <option value="500">500 per page</option>
+                    <option value="all" selected>Show All</option>
+                </select>
+            </div>
+
+            <div class="totals-bar" id="at-nyc-totals"></div>
+        </div>
+
+        <!-- MBT Tab -->
+        <div id="mbt" class="tab-content">
+            <div class="controls">
+                <button class="btn btn-primary" onclick="loadAllData()">🔄 Load All Data</button>
+                <button class="btn" onclick="refreshData('mbt')">🔄 Refresh MBT</button>
+                <button class="btn btn-danger" onclick="clearData('mbt')">🗑️ Clear MBT Data</button>
+                <span class="auto-refresh-indicator">Auto-Refresh: ON</span>
+                <div class="filter-item" style="margin-left: 20px;">
+                    <input type="checkbox" id="mbt-show-extra" onchange="toggleExtraColumns('mbt')">
+                    <label for="mbt-show-extra">Show Extra NYC Data</label>
+                </div>
+            </div>
+
+            <div class="progress-container" id="mbt-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="mbt-progress-fill" style="width: 0%">0%</div>
+                </div>
+                <div class="progress-status" id="mbt-progress-status">Initializing...</div>
+            </div>
+
+            <div class="filters" id="mbt-filters">
+                <div class="filter-section">
+                    <label>Visibility</label>
+                    <div class="filter-item">
+                        <input type="checkbox" id="mbt-filter-paid" checked onchange="debouncedApplyFilters('mbt')">
+                        <label for="mbt-filter-paid">Paid</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" id="mbt-filter-requested" checked onchange="debouncedApplyFilters('mbt')">
+                        <label for="mbt-filter-requested">Requested</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" id="mbt-filter-disqualified" checked onchange="debouncedApplyFilters('mbt')">
+                        <label for="mbt-filter-disqualified">Disqualified</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" id="mbt-filter-unpaid" checked onchange="debouncedApplyFilters('mbt')">
+                        <label for="mbt-filter-unpaid">Unpaid</label>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <label>Quick Filters</label>
+                    <div class="filter-item">
+                        <select id="mbt-filter-payment-status" onchange="debouncedApplyFilters('mbt')">
+                            <option value="">All Payment Status</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <select id="mbt-filter-hearing-status" onchange="debouncedApplyFilters('mbt')">
+                            <option value="">All Hearing Status</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <select id="mbt-filter-company" onchange="debouncedApplyFilters('mbt')">
+                            <option value="">All Companies</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="filter-section" style="flex: 1; min-width: 400px;">
+                    <label>Advanced Filter</label>
+                    <div class="advanced-filter">
+                        <select id="mbt-advanced-column" style="flex: 1;">
+                            <option value="">Select Column...</option>
+                        </select>
+                        <select id="mbt-advanced-operator">
+                            <option value="contains">Contains</option>
+                            <option value="equals">Equals</option>
+                            <option value="not_equals">Not Equals</option>
+                            <option value="greater">Greater Than</option>
+                            <option value="less">Less Than</option>
+                            <option value="starts">Starts With</option>
+                            <option value="ends">Ends With</option>
+                        </select>
+                        <input type="text" id="mbt-advanced-value" placeholder="Value..." onkeyup="debouncedApplyFilters('mbt')" style="flex: 1;">
+                        <button class="btn btn-danger" onclick="clearAdvancedFilter('mbt')" style="padding: 4px 8px;">Clear</button>
+                    </div>
+                    <div class="advanced-filter" style="margin-top: 5px;">
+                        <select id="mbt-advanced-column-2" style="flex: 1;">
+                            <option value="">Select Column...</option>
+                        </select>
+                        <select id="mbt-advanced-operator-2">
+                            <option value="contains">Contains</option>
+                            <option value="equals">Equals</option>
+                            <option value="not_equals">Not Equals</option>
+                            <option value="greater">Greater Than</option>
+                            <option value="less">Less Than</option>
+                            <option value="starts">Starts With</option>
+                            <option value="ends">Ends With</option>
+                        </select>
+                        <input type="text" id="mbt-advanced-value-2" placeholder="Value..." onkeyup="debouncedApplyFilters('mbt')" style="flex: 1;">
+                        <button class="btn btn-danger" onclick="clearAdvancedFilter2('mbt')" style="padding: 4px 8px;">Clear</button>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <label>Search</label>
+                    <div class="filter-item">
+                        <input type="text" id="mbt-filter-search" placeholder="Search all columns..." onkeyup="debouncedApplyFilters('mbt')" style="width: 200px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-bar" id="mbt-status"></div>
+
+            <div class="table-container" id="mbt-table-container">
+                <table id="mbt-table">
+                    <thead id="mbt-thead"></thead>
+                    <tbody id="mbt-tbody"></tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="mbt-pagination">
+                <button onclick="changePage('mbt', -1)">Previous</button>
+                <span id="mbt-page-info">Page 1</span>
+                <button onclick="changePage('mbt', 1)">Next</button>
+                <select id="mbt-page-size" onchange="changePageSize('mbt')">
+                    <option value="50">50 per page</option>
+                    <option value="100">100 per page</option>
+                    <option value="250">250 per page</option>
+                    <option value="500">500 per page</option>
+                    <option value="all" selected>Show All</option>
+                </select>
+            </div>
+
+            <div class="totals-bar" id="mbt-totals"></div>
+        </div>
+
+        <!-- NEW MONEY Tab -->
+        <div id="new-money" class="tab-content">
+            <div class="money-header">
+                <div class="money-emoji">💰💵💸</div>
+                <h2>New Money Waiting to Collect</h2>
+                <p style="font-size: 1.1em; opacity: 0.95;">Summonses marked "Paid in Full" but not yet collected from NYC</p>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-success" onclick="refreshNewMoney()">🔄 Refresh New Money</button>
+            </div>
+
+            <div class="money-card">
+                <h3>💚 AT Dataset</h3>
+                <div class="table-container">
+                    <table id="new-money-at-table">
+                        <thead id="new-money-at-thead"></thead>
+                        <tbody id="new-money-at-tbody"></tbody>
+                    </table>
+                </div>
+                <div class="money-total" id="new-money-at-totals"></div>
+            </div>
+
+            <div class="money-card">
+                <h3>💙 AT NYC Dataset</h3>
+                <div class="table-container">
+                    <table id="new-money-at-nyc-table">
+                        <thead id="new-money-at-nyc-thead"></thead>
+                        <tbody id="new-money-at-nyc-tbody"></tbody>
+                    </table>
+                </div>
+                <div class="money-total" id="new-money-at-nyc-totals"></div>
+            </div>
+
+            <div class="money-card">
+                <h3>💛 MBT Dataset</h3>
+                <div class="table-container">
+                    <table id="new-money-mbt-table">
+                        <thead id="new-money-mbt-thead"></thead>
+                        <tbody id="new-money-mbt-tbody"></tbody>
+                    </table>
+                </div>
+                <div class="money-total" id="new-money-mbt-totals"></div>
+            </div>
+        </div>
+
+        <!-- DISCREPANCIES Tab -->
+        <div id="discrepancies" class="tab-content">
+            <div class="controls">
+                <button class="btn btn-primary" onclick="generateDiscrepancies()">🔍 Generate Discrepancy Reports</button>
+            </div>
+
+            <div class="dataset-section">
+                <h3>Payment Amount Mismatches</h3>
+                <p style="margin-bottom: 15px; color: #666;">Invoices where the amount you received doesn't match 25% of what NYC was paid.</p>
+                <div id="discrepancies-mismatches"></div>
+            </div>
+
+            <div class="dataset-section">
+                <h3>Orphaned Payments</h3>
+                <p style="margin-bottom: 15px; color: #666;">Payments in your "Paid" sheet that don't have a corresponding entry in the master dataset.</p>
+                <div id="discrepancies-orphaned"></div>
+            </div>
+        </div>
+
+        <!-- FUN FACTS Tab -->
+        <div id="fun-facts" class="tab-content">
+            <div class="controls">
+                <button class="btn btn-primary" onclick="generateFunFacts()">🎉 Generate Fun Facts</button>
+            </div>
+            <div id="fun-facts-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;"></div>
+        </div>
+
+        <!-- MAP Tab -->
+        <div id="map-tab" class="tab-content">
+            <div class="controls">
+                <button class="btn btn-primary" onclick="initializeMap()">🗺️ Load Map</button>
+                <div class="filter-item">
+                    <select id="map-date-filter" onchange="updateMapMarkers()" style="padding: 8px; border: 2px solid #5a7fa7; border-radius: 4px;">
+                        <option value="">All Dates</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <input type="checkbox" id="map-show-at" checked onchange="updateMapMarkers()">
+                    <label for="map-show-at">🔴 Show AT</label>
+                </div>
+                <div class="filter-item">
+                    <input type="checkbox" id="map-show-at-nyc" checked onchange="updateMapMarkers()">
+                    <label for="map-show-at-nyc">🔵 Show AT NYC</label>
+                </div>
+                <div class="filter-item">
+                    <input type="checkbox" id="map-show-mbt" checked onchange="updateMapMarkers()">
+                    <label for="map-show-mbt">🟢 Show MBT</label>
+                </div>
+            </div>
+            <div id="map"></div>
+        </div>
+
+        <!-- CHARTS Tab -->
+        <div id="charts" class="tab-content">
+            <div class="chart-section">
+                <h3 style="margin-bottom: 15px; color: #1e3c72;">📊 Data Visualizations</h3>
+                
+                <div class="chart-type-buttons">
+                    <button class="chart-type-btn active" onclick="setChartType('pie')">Pie Chart</button>
+                    <button class="chart-type-btn" onclick="setChartType('bar')">Bar Chart</button>
+                    <button class="chart-type-btn" onclick="setChartType('line')">Line Chart</button>
+                    <button class="chart-type-btn" onclick="setChartType('doughnut')">Doughnut Chart</button>
+                </div>
+
+                <div class="chart-controls">
+                    <div class="chart-control-group">
+                        <label>Data Source</label>
+                        <select id="chart-tab-selector">
+                            <option value="all">All Datasets Combined</option>
+                            <option value="at">AT Only</option>
+                            <option value="at-nyc">AT NYC Only</option>
+                            <option value="mbt">MBT Only</option>
+                        </select>
+                    </div>
+
+                    <div class="chart-control-group">
+                        <label>Chart Field</label>
+                        <select id="chart-field-selector">
+                            <option value="Payment Status">Payment Status</option>
+                            <option value="Status">Status</option>
+                            <option value="Hearing Status">Hearing Status</option>
+                            <option value="Hearing Result">Hearing Result</option>
+                            <option value="Company Name">Company Name (Top 10)</option>
+                            <option value="Issuing Agency">Issuing Agency</option>
+                            <option value="Violation Location (Borough)">Borough</option>
+                        </select>
+                    </div>
+
+                    <div class="chart-control-group">
+                        <label>Sort By</label>
+                        <select id="chart-sort">
+                            <option value="value-desc">Value (High to Low)</option>
+                            <option value="value-asc">Value (Low to High)</option>
+                            <option value="label-asc">Label (A to Z)</option>
+                            <option value="label-desc">Label (Z to A)</option>
+                        </select>
+                    </div>
+
+                    <div class="chart-control-group">
+                        <label>Max Items</label>
+                        <input type="number" id="chart-max-items" value="10" min="1" max="50">
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="updateGlobalChart()">Generate Chart</button>
+                <button class="btn" onclick="exportChartData()">📥 Export Data</button>
+
+                <div class="chart-canvas-container">
+                    <canvas id="global-chart"></canvas>
+                </div>
+
+                <div id="chart-stats" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;"></div>
+            </div>
+        </div>
+
+        <!-- SETTINGS Tab -->
+        <div id="settings" class="tab-content">
+            <div class="settings-panel">
+                <div class="settings-section">
+                    <h3>🔧 Column Configuration (Applies to All Sheets)</h3>
+                    <p style="margin-bottom: 15px; color: #666;">Customize column order and widths for all data sheets.</p>
+                    <button class="btn btn-primary" onclick="openColumnConfig()">⚙️ Configure Columns</button>
+                </div>
+
+                <div class="settings-section">
+                    <h3>📊 Google Sheets Configuration</h3>
+                    <p style="margin-bottom: 15px; color: #666;">Enter the URLs of your Google Sheets. Make sure each sheet is published to the web (File → Share → Publish to web → CSV format).</p>
+                    
+                    <h4 style="margin: 15px 0 10px 0; color: #1e3c72;">AT Dataset</h4>
+                    <div class="sheet-input-group">
+                        <label>Master Data Sheet URL:</label>
+                        <input type="text" id="sheet-at-master" placeholder="https://docs.google.com/spreadsheets/d/..." onchange="saveSheetURLs()">
+                    </div>
+                    <div class="sheet-input-group">
+                        <label>Paid from NYC Sheet URL:</label>
+                        <input type="text" id="sheet-at-paid" placeholder="https://docs.google.com/spreadsheets/d/..." onchange="saveSheetURLs()">
+                    </div>
+                    <div class="sheet-input-group">
+                        <label>Payment Requests Sheet URL:</label>
+                        <input type="text" id="sheet-at-requests" placeholder="https://docs.google.com/spreadsheets/d/..." onchange="saveSheetURLs()">
+                    </div>
+
+                    <h4 style="margin: 15px 0 10px 0; color: #1e3c72;">AT NYC Dataset</h4>
+                    <div class="sheet-input-group">
+                        <label>Master Data Sheet URL:</label>
+                        <input type="text" id="sheet-at-nyc-master" placeholder="https://docs.google.com/spreadsheets/d/..." onchange="saveSheetURLs()">
+                    </div>
+                    <div class="sheet-input-group">
+                        <label>Paid from NYC Sheet URL:</label>
+                        <input type="text" id="sheet-at-nyc-paid" placeholder="https://docs.google.com/spreadsheets/d/..." onchange="saveSheetURLs()">
+                    </div>
+                    <div class="sheet-input-group">
+                        <label>Payment Requests Sheet URL:</label>
+                        <input type="text" id="sheet-at-nyc-requests" placeholder="https://docs.google.com/spreadsheets/d/..." onchange="saveSheetURLs()">
+                    </div>
+
+                    <h4 style="margin: 15px 0 10px 0; color: #1e3c72;">MBT Dataset</h4>
+                    <div class="sheet-input-group">
+                        <label>Master Data Sheet URL:</label>
+                        <input type="text" id="sheet-mbt-master" placeholder="https://docs.google.com/spreadsheets/d/..." onchange="saveSheetURLs()">
+                    </div>
+                    <div class="sheet-input-group">
+                        <label>Paid from NYC Sheet URL:</label>
+                        <input type="text" id="sheet-mbt-paid" placeholder="https://docs.google.com/spreadsheets/d/..." onchange="saveSheetURLs()">
+                    </div>
+                    <div class="sheet-input-group">
+                        <label>Payment Requests Sheet URL:</label>
+                        <input type="text" id="sheet-mbt-requests" placeholder="https://docs.google.com/spreadsheets/d/..." onchange="saveSheetURLs()">
+                    </div>
+
+                    <button class="btn btn-success" onclick="loadAllData()">Load All Data from Sheets</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Column Configuration Modal -->
+    <div id="column-config-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Column Configuration</h2>
+                <span class="close" onclick="closeColumnConfig()">&times;</span>
+            </div>
+            <p style="color: #666; margin-bottom: 15px;">Configure column order and widths. These settings apply to all three data sheets (AT, AT NYC, MBT).</p>
+            <div id="column-order-list"></div>
+            <div class="modal-actions">
+                <button class="btn btn-danger" onclick="resetColumnSettings()">Reset to Default</button>
+                <button class="btn btn-success" onclick="closeColumnConfig()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global data storage
+        const appData = {
+            'at': { master: [], paid: [], requests: [], merged: [], filtered: [], currentPage: 1, pageSize: 'all', showExtra: false, lastRefreshSheets: null, lastRefreshNYC: null },
+            'at-nyc': { master: [], paid: [], requests: [], merged: [], filtered: [], currentPage: 1, pageSize: 'all', showExtra: false, lastRefreshSheets: null, lastRefreshNYC: null },
+            'mbt': { master: [], paid: [], requests: [], merged: [], filtered: [], currentPage: 1, pageSize: 'all', showExtra: false, lastRefreshSheets: null, lastRefreshNYC: null }
+        };
+        
+        // Global column configuration (applies to all sheets)
+        let globalColumnOrder = [];
+        let globalColumnWidths = {};
+
+        const sheetURLs = {
+            'at': { 
+                master: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ1o9qMz_zElO_r9I5ViHfeBmRQCv46NiecZoLDAOG76oojqjMnkd2Sy1MWZFYDYyE5RJ7OpFZXQ9Vb/pub?output=csv', 
+                paid: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTwItpq2AsDCUfw9cEkRGe3E9JqXmIKQXztaXJSXiM4M6u1kwTzfszMAw3CgKXCa8tteoidy0MyMMoh/pub?output=csv', 
+                requests: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS6Z2wJLGR3zBW0dSUxReBhrgzu0iKOpUURySRtnjL5R-7JJp_F8UCyqBO9kcJoJAmertKe7yQwuX31/pub?output=csv' 
+            },
+            'at-nyc': { 
+                master: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRncTRjr3qqbr3n0iFhLr7kJ-1pwpVg9t1NJtR2RQFHsuq2QAQcyo75WgyQ1MVqZcY5gfDw2zy8jM67/pub?output=csv', 
+                paid: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSKFvWDobRvxkaLQUZoVFh-YLag37CTTubJMRYS7KpS_Xv4a7ts3bhvdlU1s_mKiQY5FWKpaW7SjD2H/pub?output=csv', 
+                requests: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT7mgKpDJmK_BbcK98IZUqUm2S5zk97nLdxndeVKAtOF5gjMzgjIGrSfm18fj5lFWEGgfJMJh8ZvmEC/pub?output=csv' 
+            },
+            'mbt': { 
+                master: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQEdHNxEgIJnRElve2T6iUA-racSM-4Y871MGa6ruZ_Id8pGaENVZOAHRwOqNeypl7unfnSlHVgKnjK/pub?output=csv', 
+                paid: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRBmD38Ggf3XOiDTgkmAjW0zOQfmTJyQTSxHFdj4GtgugY1L0ZO4gkgWvOcBT8OlgQ5TJSOL27_qM86/pub?output=csv', 
+                requests: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTZtnehNQnyC0Zd794OvuYJtUVQFMou3IWUdnOQY491BNisPe3aIYvYHjsxJkTbtb_Eo9TW0H8u-Wzn/pub?output=csv' 
+            }
+        };
+
+        let currentSortColumn = {};
+        let currentSortDirection = {};
+        let globalChart = null;
+        let currentChartType = 'pie';
+        let autoRefreshInterval = null;
+        let map = null;
+        let markers = [];
+        let filterDebounceTimers = {};
+
+        const priorityNYCFields = ['Paid Amount', 'Hearing Status', 'Hearing Result', 'Balance Due'];
+
+        const extraNYCFields = [
+            'Violation Time',
+            'Issuing Agency',
+            'Respondent First Name',
+            'Respondent Last Name',
+            'Balance Due',
+            'Violation Location (Borough)',
+            'Violation Location (Block No.)',
+            'Violation Location (Lot No.)',
+            'Violation Location (House #)',
+            'Violation Location (Street Name)',
+            'Violation Location (Floor)',
+            'Violation Location (City)',
+            'Violation Location (Zip Code)',
+            'Violation Location (State Name)',
+            'Respondent Address (Borough)',
+            'Respondent Address (House #)',
+            'Respondent Address (Street Name)',
+            'Respondent Address (City)',
+            'Respondent Address (Zip Code)',
+            'Respondent Address (State Name)',
+            'Scheduled Hearing Location',
+            'Hearing Time',
+            'Decision Location (Borough)',
+            'Decision Date',
+            'Total Violation Amount',
+            'Violation Details',
+            'Date Judgment Docketed',
+            'Respondent Address or Facility Number(For FDNY and DOB Tickets)',
+            'Penalty Imposed',
+            'Additional Penalties or Late Fees',
+            'Compliance Status',
+            'Violation Description',
+            'Charge #1: Code',
+            'Charge #1: Code Section',
+            'Charge #1: Code Description',
+            'Charge #1: Infraction Amount'
+        ];
+        
+        const defaultColumns = [
+            'Complaint Number',
+            'Summons Number',
+            'Violation Date',
+            'Company Name',
+            'Place of Occurrence',
+            'Status',
+            'Date Submitted',
+            'Hearing Date',
+            'Paid Amount',
+            'Paid To Me',
+            'Payment Status',
+            'Payment Received',
+            'Hearing Status',
+            'Hearing Result'
+        ];
+
+        const nycFieldMapping = {
+            'ticket_number': 'Ticket Number',
+            'violation_date': 'Violation Date',
+            'respondent_last_name': 'Respondent Last Name',
+            'paid_amount': 'Paid Amount',
+            'hearing_status': 'Hearing Status',
+            'hearing_date': 'Hearing Date',
+            'violation_time': 'Violation Time',
+            'issuing_agency': 'Issuing Agency',
+            'respondent_first_name': 'Respondent First Name',
+            'balance_due': 'Balance Due',
+            'violation_location_borough': 'Violation Location (Borough)',
+            'violation_location_house': 'Violation Location (House #)',
+            'violation_location_street_name': 'Violation Location (Street Name)',
+            'violation_location_city': 'Violation Location (City)',
+            'violation_location_zip_code': 'Violation Location (Zip Code)',
+            'hearing_result': 'Hearing Result',
+            'total_violation_amount': 'Total Violation Amount'
+        };
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            return dateStr.replace(/T\d{2}:\d{2}:\d{2}\.\d{3}/, '');
+        }
+
+        function toggleExtraColumns(tab) {
+            appData[tab].showExtra = document.getElementById(`${tab}-show-extra`).checked;
+            renderTable(tab);
+        }
+
+        // Debounce function for performance
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Debounced filter application
+        function debouncedApplyFilters(tab) {
+            if (filterDebounceTimers[tab]) {
+                clearTimeout(filterDebounceTimers[tab]);
+            }
+            filterDebounceTimers[tab] = setTimeout(() => {
+                applyFilters(tab);
+            }, 300);
+        }
+
+        function clearAdvancedFilter(tab) {
+            document.getElementById(`${tab}-advanced-column`).value = '';
+            document.getElementById(`${tab}-advanced-value`).value = '';
+            applyFilters(tab);
+        }
+
+        function clearAdvancedFilter2(tab) {
+            document.getElementById(`${tab}-advanced-column-2`).value = '';
+            document.getElementById(`${tab}-advanced-value-2`).value = '';
+            applyFilters(tab);
+        }
+
+        // Column configuration functions
+        function openColumnConfig() {
+            const modal = document.getElementById('column-config-modal');
+            modal.style.display = 'block';
+            refreshColumnList();
+        }
+
+        function closeColumnConfig() {
+            const modal = document.getElementById('column-config-modal');
+            modal.style.display = 'none';
+        }
+
+        function refreshColumnList() {
+            // Get all possible columns from all datasets
+            const allColumnsSet = new Set();
+            ['at', 'at-nyc', 'mbt'].forEach(tab => {
+                if (appData[tab].merged.length > 0) {
+                    Object.keys(appData[tab].merged[0]).forEach(col => {
+                        if (!col.startsWith('_')) {
+                            allColumnsSet.add(col);
+                        }
+                    });
+                }
+            });
+
+            let availableColumns = Array.from(allColumnsSet);
+            
+            // If custom order exists, use it
+            if (globalColumnOrder.length > 0) {
+                const ordered = [];
+                const remaining = [...availableColumns];
+                globalColumnOrder.forEach(col => {
+                    if (remaining.includes(col)) {
+                        ordered.push(col);
+                        remaining.splice(remaining.indexOf(col), 1);
+                    }
+                });
+                availableColumns = [...ordered, ...remaining];
+            }
+
+            const list = document.getElementById('column-order-list');
+            list.innerHTML = '';
+            
+            availableColumns.forEach((col, idx) => {
+                const item = document.createElement('div');
+                item.className = 'column-config-item';
+                item.setAttribute('data-column', col);
+                
+                const controls = document.createElement('div');
+                controls.className = 'column-controls';
+                
+                const upBtn = document.createElement('button');
+                upBtn.className = 'btn-small';
+                upBtn.textContent = '↑';
+                upBtn.disabled = idx === 0;
+                upBtn.onclick = () => moveColumn(idx, -1);
+                
+                const downBtn = document.createElement('button');
+                downBtn.className = 'btn-small';
+                downBtn.textContent = '↓';
+                downBtn.disabled = idx === availableColumns.length - 1;
+                downBtn.onclick = () => moveColumn(idx, 1);
+                
+                controls.appendChild(upBtn);
+                controls.appendChild(downBtn);
+                
+                const name = document.createElement('div');
+                name.className = 'column-name';
+                name.textContent = col;
+                
+                const widthControl = document.createElement('div');
+                widthControl.className = 'column-width-control';
+                
+                const label = document.createElement('label');
+                label.textContent = 'Width (px):';
+                
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.className = 'width-input';
+                input.min = '50';
+                input.max = '500';
+                input.placeholder = 'auto';
+                input.value = globalColumnWidths[col] || '';
+                input.onchange = () => updateColumnWidth(col, input.value);
+                
+                widthControl.appendChild(label);
+                widthControl.appendChild(input);
+                
+                item.appendChild(controls);
+                item.appendChild(name);
+                item.appendChild(widthControl);
+                
+                list.appendChild(item);
+            });
+        }
+
+        function moveColumn(index, direction) {
+            // Get current order
+            const allColumnsSet = new Set();
+            ['at', 'at-nyc', 'mbt'].forEach(tab => {
+                if (appData[tab].merged.length > 0) {
+                    Object.keys(appData[tab].merged[0]).forEach(col => {
+                        if (!col.startsWith('_')) {
+                            allColumnsSet.add(col);
+                        }
+                    });
+                }
+            });
+
+            let columns = Array.from(allColumnsSet);
+            if (globalColumnOrder.length > 0) {
+                const ordered = [];
+                const remaining = [...columns];
+                globalColumnOrder.forEach(col => {
+                    if (remaining.includes(col)) {
+                        ordered.push(col);
+                        remaining.splice(remaining.indexOf(col), 1);
+                    }
+                });
+                columns = [...ordered, ...remaining];
+            }
+
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= columns.length) return;
+
+            // Swap
+            [columns[index], columns[newIndex]] = [columns[newIndex], columns[index]];
+            
+            globalColumnOrder = columns;
+            saveColumnSettings();
+            refreshColumnList();
+            
+            // Update all tables
+            ['at', 'at-nyc', 'mbt'].forEach(tab => renderTable(tab));
+        }
+
+        function updateColumnWidth(column, value) {
+            if (value === '' || value === 'auto') {
+                delete globalColumnWidths[column];
+            } else {
+                globalColumnWidths[column] = parseInt(value);
+            }
+            saveColumnSettings();
+            
+            // Update all tables
+            ['at', 'at-nyc', 'mbt'].forEach(tab => renderTable(tab));
+        }
+
+        function resetColumnSettings() {
+            if (confirm('Reset all column settings to default? This will clear custom order and widths.')) {
+                globalColumnOrder = [];
+                globalColumnWidths = {};
+                saveColumnSettings();
+                refreshColumnList();
+                ['at', 'at-nyc', 'mbt'].forEach(tab => renderTable(tab));
+            }
+        }
+
+        function saveColumnSettings() {
+            const settings = {
+                columnOrder: globalColumnOrder,
+                columnWidths: globalColumnWidths
+            };
+            localStorage.setItem('globalColumnSettings', JSON.stringify(settings));
+        }
+
+        function loadColumnSettings() {
+            const saved = localStorage.getItem('globalColumnSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                globalColumnOrder = settings.columnOrder || [];
+                globalColumnWidths = settings.columnWidths || {};
+            }
+        }
+
+        function getColumns(tab) {
+            const filteredData = appData[tab].filtered;
+            if (filteredData.length === 0) return [];
+
+            // Get all columns
+            const allColumnsSet = new Set();
+            filteredData.forEach(row => {
+                Object.keys(row).forEach(col => {
+                    if (!col.startsWith('_')) {
+                        allColumnsSet.add(col);
+                    }
+                });
+            });
+            let allColumns = Array.from(allColumnsSet);
+            
+            let columns = [];
+            
+            if (!appData[tab].showExtra) {
+                columns = defaultColumns.filter(col => allColumns.includes(col));
+            } else {
+                columns = defaultColumns.filter(col => allColumns.includes(col));
+                extraNYCFields.forEach(field => {
+                    if (!columns.includes(field)) {
+                        columns.push(field);
+                    }
+                });
+                allColumns.forEach(col => {
+                    if (!columns.includes(col)) {
+                        columns.push(col);
+                    }
+                });
+            }
+
+            // Apply global custom order if it exists
+            if (globalColumnOrder && globalColumnOrder.length > 0) {
+                const orderedColumns = [];
+                const remainingColumns = [...columns];
+                
+                globalColumnOrder.forEach(col => {
+                    if (remainingColumns.includes(col)) {
+                        orderedColumns.push(col);
+                        remainingColumns.splice(remainingColumns.indexOf(col), 1);
+                    }
+                });
+                
+                return [...orderedColumns, ...remainingColumns];
+            }
+
+            return columns;
+        }
+
+        window.onload = function() {
+            loadSheetURLs();
+            loadFromStorage();
+            loadColumnSettings();
+            startAutoRefresh();
+        };
+
+        function startAutoRefresh() {
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            autoRefreshInterval = setInterval(() => {
+                loadAllData(true);
+            }, 300000);
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            
+            const tabElement = tabName === 'map' ? document.getElementById('map-tab') : document.getElementById(tabName);
+            tabElement.classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'new-money') {
+                renderNewMoney();
+            }
+        }
+
+        function convertToCSVUrl(url) {
+            if (!url) return '';
+            if (url.includes('pub?output=csv') || url.includes('export?format=csv')) {
+                return url;
+            }
+            const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (match) {
+                const sheetId = match[1];
+                return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+            }
+            return url;
+        }
+
+        async function fetchWithCORS(url) {
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    return await response.text();
+                }
+            } catch (error) {
+                console.log('Direct fetch failed, trying CORS proxy...');
+            }
+
+            const corsProxies = [
+                `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+            ];
+
+            for (const proxyUrl of corsProxies) {
+                try {
+                    const response = await fetch(proxyUrl);
+                    if (response.ok) {
+                        return await response.text();
+                    }
+                } catch (error) {
+                    console.log('Proxy failed:', error.message);
+                }
+            }
+
+            throw new Error('Failed to fetch from Google Sheets');
+        }
+
+        function saveSheetURLs() {
+            ['at', 'at-nyc', 'mbt'].forEach(tab => {
+                sheetURLs[tab].master = document.getElementById(`sheet-${tab}-master`).value;
+                sheetURLs[tab].paid = document.getElementById(`sheet-${tab}-paid`).value;
+                sheetURLs[tab].requests = document.getElementById(`sheet-${tab}-requests`).value;
+            });
+            localStorage.setItem('sheetURLs', JSON.stringify(sheetURLs));
+        }
+
+        function loadSheetURLs() {
+            const saved = localStorage.getItem('sheetURLs');
+            if (saved) {
+                const loaded = JSON.parse(saved);
+                ['at', 'at-nyc', 'mbt'].forEach(tab => {
+                    if (loaded[tab]) {
+                        sheetURLs[tab] = loaded[tab];
+                        if (sheetURLs[tab].master) document.getElementById(`sheet-${tab}-master`).value = sheetURLs[tab].master;
+                        if (sheetURLs[tab].paid) document.getElementById(`sheet-${tab}-paid`).value = sheetURLs[tab].paid;
+                        if (sheetURLs[tab].requests) document.getElementById(`sheet-${tab}-requests`).value = sheetURLs[tab].requests;
+                    }
+                });
+            }
+        }
+
+        async function loadAllData(silent = false) {
+            if (!silent) updateProgress('at', 0, 'Loading data from Google Sheets...');
+            
+            for (const tab of ['at', 'at-nyc', 'mbt']) {
+                try {
+                    if (sheetURLs[tab].master) {
+                        const masterData = await fetchCSVFromSheet(convertToCSVUrl(sheetURLs[tab].master));
+                        appData[tab].master = masterData;
+                    }
+                    if (sheetURLs[tab].paid) {
+                        const paidData = await fetchCSVFromSheet(convertToCSVUrl(sheetURLs[tab].paid));
+                        appData[tab].paid = paidData;
+                    }
+                    if (sheetURLs[tab].requests) {
+                        const requestsData = await fetchCSVFromSheet(convertToCSVUrl(sheetURLs[tab].requests));
+                        appData[tab].requests = requestsData;
+                    }
+
+                    appData[tab].lastRefreshSheets = new Date().toISOString();
+
+                    mergeData(tab);
+                    await enrichFromNYC(tab, true);
+                    applyFilters(tab);
+                    populateFilterDropdowns(tab);
+                    populateAdvancedFilterColumns(tab);
+                } catch (error) {
+                    console.error(`Error loading ${tab}:`, error);
+                }
+            }
+
+            saveToStorage();
+            updateRefreshTimestamps();
+            if (!silent) {
+                updateProgress('at', 100, 'Data loaded successfully!');
+                alert('All data loaded from Google Sheets!');
+            }
+        }
+
+        async function fetchCSVFromSheet(url) {
+            const text = await fetchWithCORS(url);
+            const parsed = parseCSV(text);
+            return parsed;
+        }
+
+        function parseCSV(text) {
+            const rows = [];
+            let currentRow = [];
+            let currentCell = '';
+            let insideQuotes = false;
+            
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const nextChar = text[i + 1];
+                
+                if (char === '"') {
+                    if (insideQuotes && nextChar === '"') {
+                        currentCell += '"';
+                        i++;
+                    } else {
+                        insideQuotes = !insideQuotes;
+                    }
+                } else if (char === ',' && !insideQuotes) {
+                    currentRow.push(currentCell.trim());
+                    currentCell = '';
+                } else if ((char === '\n' || char === '\r') && !insideQuotes) {
+                    if (char === '\r' && nextChar === '\n') {
+                        i++;
+                    }
+                    if (currentCell || currentRow.length > 0) {
+                        currentRow.push(currentCell.trim());
+                        if (currentRow.some(cell => cell.length > 0)) {
+                            rows.push(currentRow);
+                        }
+                        currentRow = [];
+                        currentCell = '';
+                    }
+                } else {
+                    currentCell += char;
+                }
+            }
+            
+            if (currentCell || currentRow.length > 0) {
+                currentRow.push(currentCell.trim());
+                if (currentRow.some(cell => cell.length > 0)) {
+                    rows.push(currentRow);
+                }
+            }
+            
+            if (rows.length === 0) return [];
+            
+            const headers = rows[0].map(h => h.trim());
+            const data = [];
+            
+            for (let i = 1; i < rows.length; i++) {
+                const row = {};
+                const values = rows[i];
+                
+                headers.forEach((header, index) => {
+                    row[header] = values[index] ? values[index].trim() : '';
+                });
+                
+                const hasData = Object.values(row).some(val => val.length > 0);
+                if (hasData) {
+                    data.push(row);
+                }
+            }
+            
+            return data;
+        }
+
+        function mergeData(tab) {
+            const master = appData[tab].master;
+            const paid = appData[tab].paid;
+            const requests = appData[tab].requests;
+
+            if (master.length === 0) {
+                appData[tab].merged = [];
+                return;
+            }
+
+            const paidMap = {};
+            paid.forEach(row => {
+                const summonsNum = row['Summons #'] || row['Summons Number'];
+                if (summonsNum) paidMap[summonsNum.trim()] = row;
+            });
+
+            const requestsMap = {};
+            requests.forEach(row => {
+                const summonsNum = row['Complaint Number'] || row['Summons Number'];
+                if (summonsNum) requestsMap[summonsNum.trim()] = row;
+            });
+
+            const merged = master.map(row => {
+                const summonsNum = (row['Summons Number'] || '').trim();
+                const newRow = { ...row };
+
+                if (!newRow['Paid Amount']) newRow['Paid Amount'] = '';
+                if (!newRow['Hearing Status']) newRow['Hearing Status'] = '';
+
+                if (summonsNum && paidMap[summonsNum]) {
+                    newRow['_rowType'] = 'paid';
+                    
+                    const paidRow = paidMap[summonsNum];
+                    Object.keys(paidRow).forEach(key => {
+                        if (key !== 'Summons #' && key !== 'Summons Number') {
+                            newRow[key] = paidRow[key];
+                        }
+                    });
+                    
+                    newRow['Payment Status'] = 'PAID TO ME';
+                } else if (summonsNum && requestsMap[summonsNum]) {
+                    newRow['_rowType'] = 'requested';
+                    
+                    Object.keys(requestsMap[summonsNum]).forEach(key => {
+                        if (key !== 'Complaint Number' && key !== 'Summons Number') {
+                            newRow[key] = requestsMap[summonsNum][key];
+                        }
+                    });
+                    newRow['Payment Status'] = 'REQUESTED';
+                }
+                
+                const status = (row['Status'] || '').toLowerCase();
+                const hearingResult = (row['Hearing Result'] || newRow['Hearing Result'] || '').toLowerCase();
+                if (status.includes('disqualified') || hearingResult.includes('dismissed')) {
+                    newRow['_rowType'] = 'disqualified';
+                }
+
+                return newRow;
+            });
+
+            appData[tab].merged = merged;
+        }
+
+        async function enrichFromNYC(tab, silent = false) {
+            const data = appData[tab].merged;
+            if (data.length === 0) return;
+
+            try {
+                const summonsNumbers = data.map(row => row['Summons Number']).filter(num => num && num.trim() !== '');
+                if (summonsNumbers.length === 0) return;
+
+                const batchSize = 50;
+                const enrichedDataMap = {};
+
+                for (let i = 0; i < summonsNumbers.length; i += batchSize) {
+                    const batch = summonsNumbers.slice(i, i + batchSize);
+                    const ticketNumbers = batch.map(num => `'${num}'`).join(',');
+                    const url = `https://data.cityofnewyork.us/resource/jz4z-kudi.json?$where=ticket_number IN (${ticketNumbers})&$limit=1000`;
+
+                    const response = await fetch(url);
+                    const nycData = await response.json();
+
+                    nycData.forEach(item => {
+                        enrichedDataMap[item.ticket_number] = item;
+                    });
+                }
+
+                appData[tab].merged = data.map(row => {
+                    const summonsNum = (row['Summons Number'] || '').trim();
+                    if (summonsNum && enrichedDataMap[summonsNum]) {
+                        const nycRow = enrichedDataMap[summonsNum];
+                        const enrichedRow = { ...row };
+                        
+                        Object.keys(nycFieldMapping).forEach(apiField => {
+                            const displayName = nycFieldMapping[apiField];
+                            if (nycRow[apiField] !== undefined && nycRow[apiField] !== null) {
+                                enrichedRow[displayName] = nycRow[apiField];
+                            }
+                        });
+
+                        return enrichedRow;
+                    }
+                    return row;
+                });
+
+                appData[tab].lastRefreshNYC = new Date().toISOString();
+
+                saveToStorage();
+            } catch (error) {
+                console.error('Enrichment error:', error);
+            }
+        }
+
+        function refreshData(tab) {
+            loadAllData();
+        }
+
+        function clearData(tab) {
+            if (!confirm(`Clear all data for ${tab.toUpperCase()}?`)) return;
+            appData[tab] = { master: [], paid: [], requests: [], merged: [], filtered: [], currentPage: 1, pageSize: 100 };
+            saveToStorage();
+            applyFilters(tab);
+        }
+
+        function populateFilterDropdowns(tab) {
+            const data = appData[tab].merged;
+            
+            const paymentStatuses = new Set();
+            const hearingStatuses = new Set();
+            const companies = new Set();
+            
+            data.forEach(row => {
+                if (row['Payment Status']) paymentStatuses.add(row['Payment Status']);
+                if (row['Hearing Status']) hearingStatuses.add(row['Hearing Status']);
+                if (row['Company Name']) companies.add(row['Company Name']);
+            });
+
+            const paymentSelect = document.getElementById(`${tab}-filter-payment-status`);
+            paymentSelect.innerHTML = '<option value="">All Payment Status</option>';
+            [...paymentStatuses].sort().forEach(status => {
+                paymentSelect.innerHTML += `<option value="${status}">${status}</option>`;
+            });
+
+            const hearingSelect = document.getElementById(`${tab}-filter-hearing-status`);
+            hearingSelect.innerHTML = '<option value="">All Hearing Status</option>';
+            [...hearingStatuses].sort().forEach(status => {
+                hearingSelect.innerHTML += `<option value="${status}">${status}</option>`;
+            });
+
+            const companySelect = document.getElementById(`${tab}-filter-company`);
+            companySelect.innerHTML = '<option value="">All Companies</option>';
+            [...companies].sort().forEach(company => {
+                companySelect.innerHTML += `<option value="${company}">${company}</option>`;
+            });
+        }
+
+        function populateAdvancedFilterColumns(tab) {
+            const data = appData[tab].merged;
+            if (data.length === 0) return;
+
+            const allColumns = Object.keys(data[0]).filter(col => !col.startsWith('_'));
+            const uniqueColumns = [...new Set(allColumns)].sort();
+            
+            const select = document.getElementById(`${tab}-advanced-column`);
+            select.innerHTML = '<option value="">Select Column...</option>';
+            uniqueColumns.forEach(col => {
+                select.innerHTML += `<option value="${col}">${col}</option>`;
+            });
+
+            const select2 = document.getElementById(`${tab}-advanced-column-2`);
+            if (select2) {
+                select2.innerHTML = '<option value="">Select Column...</option>';
+                uniqueColumns.forEach(col => {
+                    select2.innerHTML += `<option value="${col}">${col}</option>`;
+                });
+            }
+        }
+
+        function applyAdvancedFilter(row, column, operator, value) {
+            if (!column || !value) return true;
+
+            const cellValue = String(row[column] || '').toLowerCase();
+            const searchValue = String(value).toLowerCase();
+
+            switch (operator) {
+                case 'contains':
+                    return cellValue.includes(searchValue);
+                case 'equals':
+                    return cellValue === searchValue;
+                case 'not_equals':
+                    return cellValue !== searchValue;
+                case 'greater':
+                    const num1 = parseFloat(cellValue.replace(/[$,]/g, ''));
+                    const num2 = parseFloat(searchValue.replace(/[$,]/g, ''));
+                    return !isNaN(num1) && !isNaN(num2) && num1 > num2;
+                case 'less':
+                    const num3 = parseFloat(cellValue.replace(/[$,]/g, ''));
+                    const num4 = parseFloat(searchValue.replace(/[$,]/g, ''));
+                    return !isNaN(num3) && !isNaN(num4) && num3 < num4;
+                case 'starts':
+                    return cellValue.startsWith(searchValue);
+                case 'ends':
+                    return cellValue.endsWith(searchValue);
+                default:
+                    return true;
+            }
+        }
+
+        function applyFilters(tab) {
+            const data = appData[tab].merged;
+            
+            const showPaid = document.getElementById(`${tab}-filter-paid`).checked;
+            const showRequested = document.getElementById(`${tab}-filter-requested`).checked;
+            const showDisqualified = document.getElementById(`${tab}-filter-disqualified`).checked;
+            const showUnpaid = document.getElementById(`${tab}-filter-unpaid`).checked;
+            
+            const paymentStatusFilter = document.getElementById(`${tab}-filter-payment-status`)?.value || '';
+            const hearingStatusFilter = document.getElementById(`${tab}-filter-hearing-status`)?.value || '';
+            const companyFilter = document.getElementById(`${tab}-filter-company`)?.value || '';
+            const searchText = (document.getElementById(`${tab}-filter-search`)?.value || '').toLowerCase();
+
+            const advColumn = document.getElementById(`${tab}-advanced-column`)?.value || '';
+            const advOperator = document.getElementById(`${tab}-advanced-operator`)?.value || '';
+            const advValue = document.getElementById(`${tab}-advanced-value`)?.value || '';
+
+            const advColumn2 = document.getElementById(`${tab}-advanced-column-2`)?.value || '';
+            const advOperator2 = document.getElementById(`${tab}-advanced-operator-2`)?.value || '';
+            const advValue2 = document.getElementById(`${tab}-advanced-value-2`)?.value || '';
+
+            const filteredData = data.filter(row => {
+                if (row['_rowType'] === 'paid' && !showPaid) return false;
+                if (row['_rowType'] === 'requested' && !showRequested) return false;
+                if (row['_rowType'] === 'disqualified' && !showDisqualified) return false;
+                
+                const paymentStatus = (row['Payment Status'] || '').trim();
+                if (!showUnpaid && !paymentStatus) return false;
+
+                if (paymentStatusFilter && row['Payment Status'] !== paymentStatusFilter) return false;
+                if (hearingStatusFilter && row['Hearing Status'] !== hearingStatusFilter) return false;
+                if (companyFilter && row['Company Name'] !== companyFilter) return false;
+
+                if (!applyAdvancedFilter(row, advColumn, advOperator, advValue)) return false;
+                if (!applyAdvancedFilter(row, advColumn2, advOperator2, advValue2)) return false;
+
+                if (searchText) {
+                    const rowText = Object.values(row).join(' ').toLowerCase();
+                    if (!rowText.includes(searchText)) return false;
+                }
+                
+                return true;
+            });
+
+            appData[tab].filtered = filteredData;
+            appData[tab].currentPage = 1;
+            renderTable(tab);
+        }
+
+        function renderTable(tab) {
+            const filteredData = appData[tab].filtered;
+            const thead = document.getElementById(`${tab}-thead`);
+            const tbody = document.getElementById(`${tab}-tbody`);
+
+            if (filteredData.length === 0) {
+                thead.innerHTML = '';
+                tbody.innerHTML = '<tr><td colspan="100" style="text-align: center;">No data matches filters.</td></tr>';
+                updateStatusBar(tab);
+                updatePagination(tab);
+                return;
+            }
+
+            const columns = getColumns(tab);
+
+            thead.innerHTML = '<tr>' + columns.map(col => {
+                const width = globalColumnWidths[col] || 'auto';
+                const style = width !== 'auto' ? `style="width: ${width}px; min-width: ${width}px; max-width: ${width}px;"` : '';
+                return `<th ${style} onclick="sortTable('${tab}', '${col}')">${col} <span class="sort-indicator">${getSortIndicator(tab, col)}</span></th>`;
+            }).join('') + '</tr>';
+
+            // Pagination
+            const pageSize = appData[tab].pageSize;
+            const currentPage = appData[tab].currentPage;
+            const start = (currentPage - 1) * pageSize;
+            const end = pageSize === 'all' ? filteredData.length : start + pageSize;
+            const pageData = filteredData.slice(start, end);
+
+            tbody.innerHTML = pageData.map(row => {
+                let rowClass = '';
+                if (row['_rowType'] === 'paid') rowClass = 'row-green';
+                else if (row['_rowType'] === 'requested') rowClass = 'row-yellow';
+                else if (row['_rowType'] === 'disqualified') rowClass = 'row-red';
+
+                return '<tr class="' + rowClass + '">' + columns.map(col => {
+                    let value = row[col] || '';
+                    value = formatDate(value);
+                    const width = globalColumnWidths[col] || 'auto';
+                    const style = width !== 'auto' ? `style="width: ${width}px; min-width: ${width}px; max-width: ${width}px; overflow: hidden; text-overflow: ellipsis;"` : '';
+                    return `<td ${style}>${value}</td>`;
+                }).join('') + '</tr>';
+            }).join('');
+
+            updateStatusBar(tab);
+            updateTotalsBar(tab, filteredData);
+            updatePagination(tab);
+        }
+
+        function updatePagination(tab) {
+            const filtered = appData[tab].filtered;
+            const pageSize = appData[tab].pageSize === 'all' ? filtered.length : appData[tab].pageSize;
+            const totalPages = Math.ceil(filtered.length / pageSize);
+            const currentPage = appData[tab].currentPage;
+
+            const pageInfo = document.getElementById(`${tab}-page-info`);
+            if (pageInfo) {
+                pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${filtered.length} total)`;
+            }
+
+            const pagination = document.getElementById(`${tab}-pagination`);
+            if (!pagination) return;
+            
+            const prevBtn = pagination.querySelector('button:first-child');
+            const nextBtn = pagination.querySelector('button:nth-child(2)');
+
+            if (prevBtn) prevBtn.disabled = currentPage === 1;
+            if (nextBtn) nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+        }
+
+        function changePage(tab, direction) {
+            appData[tab].currentPage += direction;
+            renderTable(tab);
+        }
+
+        function changePageSize(tab) {
+            const value = document.getElementById(`${tab}-page-size`).value;
+            appData[tab].pageSize = value === 'all' ? 'all' : parseInt(value);
+            appData[tab].currentPage = 1;
+            renderTable(tab);
+        }
+
+        function getSortIndicator(tab, column) {
+            if (currentSortColumn[tab] === column) {
+                return currentSortDirection[tab] === 'asc' ? '▲' : '▼';
+            }
+            return '⇅';
+        }
+
+        function sortTable(tab, column) {
+            // Prevent sorting when clicking on resize handle
+            if (event.target.classList.contains('resize-handle')) {
+                return;
+            }
+
+            if (currentSortColumn[tab] === column) {
+                currentSortDirection[tab] = currentSortDirection[tab] === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn[tab] = column;
+                currentSortDirection[tab] = 'asc';
+            }
+
+            const data = appData[tab].filtered;
+            data.sort((a, b) => {
+                let aVal = a[column] || '';
+                let bVal = b[column] || '';
+
+                const aNum = parseFloat(aVal.replace(/[$,]/g, ''));
+                const bNum = parseFloat(bVal.replace(/[$,]/g, ''));
+
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                    return currentSortDirection[tab] === 'asc' ? aNum - bNum : bNum - aNum;
+                }
+
+                if (currentSortDirection[tab] === 'asc') {
+                    return aVal.localeCompare(bVal);
+                } else {
+                    return bVal.localeCompare(aVal);
+                }
+            });
+
+            renderTable(tab);
+        }
+
+        function updateStatusBar(tab) {
+            const data = appData[tab].merged;
+            const statusBar = document.getElementById(`${tab}-status`);
+
+            const paidCount = data.filter(row => row['_rowType'] === 'paid').length;
+            const requestedCount = data.filter(row => row['_rowType'] === 'requested').length;
+            const disqualifiedCount = data.filter(row => row['_rowType'] === 'disqualified').length;
+            const totalCount = data.length;
+
+            const reviewedCount = data.filter(row => {
+                const status = (row['Status'] || '').toLowerCase();
+                return status !== 'submitted' && status !== '';
+            }).length;
+
+            // Calculate disqualified percentage based on non-submitted entries only
+            const nonSubmittedCount = data.filter(row => {
+                const status = (row['Status'] || '').toLowerCase();
+                return status !== 'submitted' && status !== '';
+            }).length;
+            const disqualifiedPercentage = nonSubmittedCount > 0 ? ((disqualifiedCount / nonSubmittedCount) * 100).toFixed(1) : 0;
+            const reviewedPercentage = totalCount > 0 ? ((reviewedCount / totalCount) * 100).toFixed(1) : 0;
+
+            statusBar.innerHTML = `
+                <div class="status-item">
+                    <span class="status-badge badge-total">Total: ${totalCount}</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-badge badge-green">Paid: ${paidCount}</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-badge badge-yellow">Requested: ${requestedCount}</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-badge badge-red">Disqualified: ${disqualifiedCount} (${disqualifiedPercentage}%)</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-badge" style="background: #3498db; color: white;">Reviewed: ${reviewedCount} (${reviewedPercentage}%)</span>
+                </div>
+            `;
+        }
+
+        function updateTotalsBar(tab, filteredData) {
+            const totalsBar = document.getElementById(`${tab}-totals`);
+            if (!totalsBar) return;
+
+            let totalHtml = `<div class="total-item">Visible Rows: ${filteredData.length}</div>`;
+
+            let totalPaidAmount = 0;
+            let totalRequestedAmount = 0;
+
+            filteredData.forEach(row => {
+                const paidAmount = parseFloat((row['Paid Amount'] || '').replace(/[$,]/g, ''));
+                
+                if (row['_rowType'] === 'paid' && !isNaN(paidAmount)) {
+                    totalPaidAmount += paidAmount;
+                } else if (row['_rowType'] === 'requested' && !isNaN(paidAmount)) {
+                    totalRequestedAmount += paidAmount;
+                }
+            });
+
+            if (totalPaidAmount > 0) {
+                const quarterPaid = totalPaidAmount / 4;
+                totalHtml += `<div class="total-item">Total Paid Amount: $${totalPaidAmount.toFixed(2)} ($${quarterPaid.toFixed(2)})</div>`;
+            }
+
+            if (totalRequestedAmount > 0) {
+                const quarterRequested = totalRequestedAmount / 4;
+                totalHtml += `<div class="total-item">Total Requested Amount: $${totalRequestedAmount.toFixed(2)} ($${quarterRequested.toFixed(2)})</div>`;
+            }
+
+            totalsBar.innerHTML = totalHtml;
+        }
+
+        function updateProgress(tab, percent, message) {
+            const progressContainer = document.getElementById(`${tab}-progress`);
+            const progressFill = document.getElementById(`${tab}-progress-fill`);
+            const progressStatus = document.getElementById(`${tab}-progress-status`);
+
+            if (!progressContainer) return;
+
+            progressContainer.classList.add('show');
+            progressFill.style.width = percent + '%';
+            progressFill.textContent = Math.round(percent) + '%';
+            progressStatus.textContent = message;
+
+            if (percent >= 100) {
+                setTimeout(() => {
+                    progressContainer.classList.remove('show');
+                }, 1500);
+            }
+        }
+
+        function renderNewMoney() {
+            ['at', 'at-nyc', 'mbt'].forEach(tab => {
+                const data = appData[tab].merged;
+                const newMoneyData = data.filter(row => {
+                    const hearingStatus = (row['Hearing Status'] || '').toLowerCase();
+                    const paymentStatus = (row['Payment Status'] || '').trim();
+                    return hearingStatus === 'paid in full' && !paymentStatus;
+                });
+
+                const thead = document.getElementById(`new-money-${tab}-thead`);
+                const tbody = document.getElementById(`new-money-${tab}-tbody`);
+
+                if (newMoneyData.length === 0) {
+                    thead.innerHTML = '';
+                    tbody.innerHTML = '<tr><td colspan="100" style="text-align: center;">✅ No new money entries found - all caught up!</td></tr>';
+                    document.getElementById(`new-money-${tab}-totals`).innerHTML = '💰 Total: $0.00';
+                    return;
+                }
+
+                const columns = Object.keys(newMoneyData[0]).filter(col => !col.startsWith('_'));
+
+                thead.innerHTML = '<tr>' + columns.map(col => `<th>${col}</th>`).join('') + '</tr>';
+                tbody.innerHTML = newMoneyData.map(row => {
+                    return '<tr>' + columns.map(col => {
+                        let value = row[col] || '';
+                        value = formatDate(value);
+                        return `<td>${value}</td>`;
+                    }).join('') + '</tr>';
+                }).join('');
+
+                let totalWaitingToCollect = 0;
+                newMoneyData.forEach(row => {
+                    const amount = parseFloat((row['Paid Amount'] || '').replace(/[$,]/g, ''));
+                    if (!isNaN(amount)) {
+                        totalWaitingToCollect += amount;
+                    }
+                });
+
+                const quarterAmount = totalWaitingToCollect / 4;
+                document.getElementById(`new-money-${tab}-totals`).innerHTML = `
+                    💰 Total Waiting to Collect: $${totalWaitingToCollect.toFixed(2)} | Your 25% Share: $${quarterAmount.toFixed(2)} | Count: ${newMoneyData.length} invoices
+                `;
+            });
+        }
+
+        function refreshNewMoney() {
+            loadAllData(true);
+            setTimeout(renderNewMoney, 2000);
+        }
+
+        function generateFunFacts() {
+            const container = document.getElementById('fun-facts-container');
+            const allData = [];
+            
+            ['at', 'at-nyc', 'mbt'].forEach(tab => {
+                appData[tab].merged.forEach(row => {
+                    allData.push({ ...row, _dataset: tab });
+                });
+            });
+
+            if (allData.length === 0) {
+                container.innerHTML = '<p>No data available. Please load data first.</p>';
+                return;
+            }
+
+            const facts = [];
+
+            facts.push({
+                title: '📊 Total Records',
+                description: `You have ${allData.length.toLocaleString()} summons records across all datasets`
+            });
+
+            const datasetCounts = {
+                'at': appData['at'].merged.length,
+                'at-nyc': appData['at-nyc'].merged.length,
+                'mbt': appData['mbt'].merged.length
+            };
+            const maxDataset = Object.keys(datasetCounts).reduce((a, b) => datasetCounts[a] > datasetCounts[b] ? a : b);
+            facts.push({
+                title: '🏆 Largest Dataset',
+                description: `${maxDataset.toUpperCase()} has the most records with ${datasetCounts[maxDataset].toLocaleString()} summons`
+            });
+
+            const paidCount = allData.filter(row => row['_rowType'] === 'paid').length;
+            const paymentRate = ((paidCount / allData.length) * 100).toFixed(1);
+            facts.push({
+                title: '💵 Payment Collection Rate',
+                description: `${paymentRate}% of summonses have been paid (${paidCount} out of ${allData.length})`
+            });
+
+            let totalCollected = 0;
+            allData.filter(row => row['_rowType'] === 'paid').forEach(row => {
+                const amount = parseFloat((row['Paid Amount'] || '').replace(/[$,]/g, ''));
+                if (!isNaN(amount)) totalCollected += amount;
+            });
+            const yourShare = totalCollected * 0.25;
+            facts.push({
+                title: '💰 Total Money Collected',
+                description: `NYC paid $${totalCollected.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} total. Your 25% share: $${yourShare.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+            });
+
+            const disqualifiedCount = allData.filter(row => row['_rowType'] === 'disqualified').length;
+            const disqualificationRate = ((disqualifiedCount / allData.length) * 100).toFixed(1);
+            facts.push({
+                title: '❌ Disqualification Rate',
+                description: `${disqualificationRate}% of cases were disqualified (${disqualifiedCount} total)`
+            });
+
+            const companyCounts = {};
+            allData.forEach(row => {
+                const company = row['Company Name'] || 'Unknown';
+                companyCounts[company] = (companyCounts[company] || 0) + 1;
+            });
+            const topCompany = Object.keys(companyCounts).reduce((a, b) => companyCounts[a] > companyCounts[b] ? a : b);
+            facts.push({
+                title: '🚚 Most Frequent Violator',
+                description: `${topCompany} appears ${companyCounts[topCompany]} times in the records`
+            });
+
+            const boroughCounts = {};
+            allData.forEach(row => {
+                const borough = row['Violation Location (Borough)'] || 'Unknown';
+                if (borough !== 'Unknown') {
+                    boroughCounts[borough] = (boroughCounts[borough] || 0) + 1;
+                }
+            });
+            if (Object.keys(boroughCounts).length > 0) {
+                const topBorough = Object.keys(boroughCounts).reduce((a, b) => boroughCounts[a] > boroughCounts[b] ? a : b);
+                facts.push({
+                    title: '🏙️ Busiest Borough',
+                    description: `${topBorough} has the most violations with ${boroughCounts[topBorough]} summons`
+                });
+            }
+
+            const paidAmounts = allData.filter(row => row['_rowType'] === 'paid').map(row => {
+                return parseFloat((row['Paid Amount'] || '').replace(/[$,]/g, ''));
+            }).filter(amt => !isNaN(amt) && amt > 0);
+            if (paidAmounts.length > 0) {
+                const avgPayment = paidAmounts.reduce((a, b) => a + b, 0) / paidAmounts.length;
+                facts.push({
+                    title: '📊 Average Payment',
+                    description: `Average payment amount is $${avgPayment.toFixed(2)}`
+                });
+            }
+
+            const requestedCount = allData.filter(row => row['_rowType'] === 'requested').length;
+            facts.push({
+                title: '⏳ Pending Requests',
+                description: `${requestedCount} payment requests are still pending`
+            });
+
+            let uncollectedRevenue = 0;
+            allData.forEach(row => {
+                const hearingStatus = (row['Hearing Status'] || '').toLowerCase();
+                const paymentStatus = (row['Payment Status'] || '').trim();
+                if (hearingStatus === 'paid in full' && !paymentStatus) {
+                    const amount = parseFloat((row['Paid Amount'] || '').replace(/[$,]/g, ''));
+                    if (!isNaN(amount)) uncollectedRevenue += amount;
+                }
+            });
+            const uncollectedShare = uncollectedRevenue * 0.25;
+            facts.push({
+                title: '💸 Uncollected Revenue',
+                description: `$${uncollectedRevenue.toFixed(2)} marked as paid but not yet collected. Your potential share: $${uncollectedShare.toFixed(2)}`
+            });
+
+            const hearingStatusCounts = {};
+            allData.forEach(row => {
+                const status = row['Hearing Status'] || 'Unknown';
+                if (status !== 'Unknown') {
+                    hearingStatusCounts[status] = (hearingStatusCounts[status] || 0) + 1;
+                }
+            });
+            if (Object.keys(hearingStatusCounts).length > 0) {
+                const topStatus = Object.keys(hearingStatusCounts).reduce((a, b) => hearingStatusCounts[a] > hearingStatusCounts[b] ? a : b);
+                facts.push({
+                    title: '📋 Most Common Hearing Status',
+                    description: `"${topStatus}" appears ${hearingStatusCounts[topStatus]} times`
+                });
+            }
+
+            const agencyCounts = {};
+            allData.forEach(row => {
+                const agency = row['Issuing Agency'] || 'Unknown';
+                if (agency !== 'Unknown') {
+                    agencyCounts[agency] = (agencyCounts[agency] || 0) + 1;
+                }
+            });
+            if (Object.keys(agencyCounts).length > 0) {
+                const topAgency = Object.keys(agencyCounts).reduce((a, b) => agencyCounts[a] > agencyCounts[b] ? a : b);
+                facts.push({
+                    title: '🏢 Top Issuing Agency',
+                    description: `${topAgency} issued ${agencyCounts[topAgency]} summons`
+                });
+            }
+
+            const dates = allData.map(row => new Date(row['Violation Date'])).filter(d => !isNaN(d));
+            if (dates.length > 0) {
+                const earliest = new Date(Math.min(...dates));
+                const latest = new Date(Math.max(...dates));
+                facts.push({
+                    title: '📅 Data Time Span',
+                    description: `Records span from ${earliest.toLocaleDateString()} to ${latest.toLocaleDateString()}`
+                });
+            }
+
+            const successRate = ((1 - (disqualifiedCount / allData.length)) * 100).toFixed(1);
+            facts.push({
+                title: '✅ Success Rate',
+                description: `${successRate}% of cases were not disqualified`
+            });
+
+            let totalBalanceDue = 0;
+            allData.forEach(row => {
+                const balance = parseFloat((row['Balance Due'] || '').replace(/[$,]/g, ''));
+                if (!isNaN(balance) && balance > 0) totalBalanceDue += balance;
+            });
+            if (totalBalanceDue > 0) {
+                facts.push({
+                    title: '💳 Outstanding Balance Due',
+                    description: `Total balance still due to NYC: $${totalBalanceDue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+                });
+            }
+
+            let markedPaid = 0;
+            allData.forEach(row => {
+                const hearingStatus = (row['Hearing Status'] || '').toLowerCase();
+                if (hearingStatus === 'paid in full') {
+                    const amount = parseFloat((row['Paid Amount'] || '').replace(/[$,]/g, ''));
+                    if (!isNaN(amount)) markedPaid += amount;
+                }
+            });
+            const collectionEfficiency = markedPaid > 0 ? ((totalCollected / markedPaid) * 100).toFixed(1) : 0;
+            facts.push({
+                title: '📈 Collection Efficiency',
+                description: `You've collected ${collectionEfficiency}% of all payments marked as "Paid in Full" ($${totalCollected.toFixed(2)} of $${markedPaid.toFixed(2)})`
+            });
+
+            let totalViolationValue = 0;
+            allData.forEach(row => {
+                const value = parseFloat((row['Total Violation Amount'] || row['Paid Amount'] || '').replace(/[$,]/g, ''));
+                if (!isNaN(value)) totalViolationValue += value;
+            });
+            if (totalViolationValue > 0) {
+                facts.push({
+                    title: '💵 Total Violation Value',
+                    description: `Total value of all violations: $${totalViolationValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+                });
+            }
+
+            const resultCounts = {};
+            allData.forEach(row => {
+                const result = row['Hearing Result'] || 'Unknown';
+                if (result !== 'Unknown') {
+                    resultCounts[result] = (resultCounts[result] || 0) + 1;
+                }
+            });
+            if (Object.keys(resultCounts).length > 0) {
+                const topResult = Object.keys(resultCounts).reduce((a, b) => resultCounts[a] > resultCounts[b] ? a : b);
+                facts.push({
+                    title: '⚖️ Most Common Hearing Result',
+                    description: `"${topResult}" is the most common result (${resultCounts[topResult]} cases)`
+                });
+            }
+
+            const lastNameCounts = {};
+            allData.forEach(row => {
+                const lastName = row['Respondent Last Name'];
+                if (lastName && lastName.trim() !== '') {
+                    lastNameCounts[lastName] = (lastNameCounts[lastName] || 0) + 1;
+                }
+            });
+            const frequentLastNames = Object.keys(lastNameCounts).filter(name => lastNameCounts[name] > 5);
+            if (frequentLastNames.length > 0) {
+                const topLastName = frequentLastNames.reduce((a, b) => lastNameCounts[a] > lastNameCounts[b] ? a : b);
+                facts.push({
+                    title: '👤 Most Frequent Respondent',
+                    description: `The surname "${topLastName}" appears ${lastNameCounts[topLastName]} times`
+                });
+            }
+
+            facts.push({
+                title: '💎 Your Bottom Line',
+                description: `You've earned $${yourShare.toFixed(2)} so far with $${uncollectedShare.toFixed(2)} potentially still to collect. ${disqualifiedCount} cases were disqualified. Keep going!`
+            });
+
+            container.innerHTML = facts.map(fact => `
+                <div style="background: white; padding: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4 style="color: #1e3c72; margin-bottom: 10px;">${fact.title}</h4>
+                    <p style="color: #2c3e50; line-height: 1.6;">${fact.description}</p>
+                </div>
+            `).join('');
+        }
+
+        function generateDiscrepancies() {
+            const mismatchesDiv = document.getElementById('discrepancies-mismatches');
+            const orphanedDiv = document.getElementById('discrepancies-orphaned');
+
+            let mismatchesHTML = '';
+            let orphanedHTML = '';
+
+            ['at', 'at-nyc', 'mbt'].forEach(tab => {
+                const datasetName = tab.toUpperCase();
+                const merged = appData[tab].merged;
+                const paid = appData[tab].paid;
+
+                // Report A: Payment Mismatches
+                const mismatches = [];
+                let totalExpected = 0;
+                let totalReceived = 0;
+
+                merged.forEach(row => {
+                    const summonsNum = (row['Summons Number'] || '').trim();
+                    const nycPaidAmount = parseFloat((row['Paid Amount'] || '').replace(/[$,]/g, ''));
+                    
+                    if (!isNaN(nycPaidAmount) && nycPaidAmount > 0 && summonsNum) {
+                        let receivedAmount = 0;
+                        let paymentDate = '';
+                        
+                        if (row['Paid To Me']) {
+                            receivedAmount = parseFloat((row['Paid To Me'] || '').replace(/[$,]/g, ''));
+                            paymentDate = row['Payment Received'] || '';
+                        }
+                        
+                        if (isNaN(receivedAmount) || receivedAmount === 0) {
+                            const paidRow = paid.find(p => {
+                                const paidSummons = (p['Summons #'] || p['Summons Number'] || '').trim();
+                                return paidSummons === summonsNum;
+                            });
+
+                            if (paidRow) {
+                                const amountFields = ['Paid To Me', 'Amount', 'Payment Amount', 'Check Amount', 'Amount Received', 'Paid Amount', 'Amount Paid'];
+                                
+                                for (const field of amountFields) {
+                                    if (paidRow[field]) {
+                                        const testAmount = parseFloat((paidRow[field] || '').replace(/[$,]/g, ''));
+                                        if (!isNaN(testAmount) && testAmount > 0) {
+                                            receivedAmount = testAmount;
+                                            break;
+                                        }
+                                    }
+                                }
+                                paymentDate = paidRow['Payment Received'] || paidRow['Date Received'] || '';
+                            }
+                        }
+
+                        if (receivedAmount > 0) {
+                            const expected = nycPaidAmount * 0.25;
+                            const difference = receivedAmount - expected;
+
+                            if (Math.abs(difference) > 0.50) {
+                                const invoiceNum = 'BP' + summonsNum.substring(1);
+                                
+                                mismatches.push({
+                                    summons: summonsNum,
+                                    invoice: invoiceNum,
+                                    company: row['Company Name'] || 'Unknown',
+                                    nycPaid: nycPaidAmount,
+                                    expected: expected,
+                                    received: receivedAmount,
+                                    difference: difference,
+                                    paymentDate: paymentDate
+                                });
+                                totalExpected += expected;
+                                totalReceived += receivedAmount;
+                            }
+                        }
+                    }
+                });
+
+                if (mismatches.length > 0) {
+                    const totalDifference = totalReceived - totalExpected;
+                    mismatchesHTML += `
+                        <div style="margin-bottom: 30px;">
+                            <h4 style="color: #1e3c72; margin-bottom: 15px; font-size: 1.1em;">${datasetName} - ${mismatches.length} Discrepancies</h4>
+                            <div style="overflow-x: auto;">
+                                <table class="discrepancy-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Invoice #</th>
+                                            <th>Company</th>
+                                            <th style="text-align: right;">NYC Paid</th>
+                                            <th style="text-align: right;">Expected (25%)</th>
+                                            <th style="text-align: right;">Received</th>
+                                            <th>Payment Date</th>
+                                            <th style="text-align: right;">Difference</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${mismatches.map(m => `
+                                            <tr>
+                                                <td>${m.invoice}</td>
+                                                <td>${m.company}</td>
+                                                <td style="text-align: right;">$${m.nycPaid.toFixed(2)}</td>
+                                                <td style="text-align: right;">$${m.expected.toFixed(2)}</td>
+                                                <td style="text-align: right;">$${m.received.toFixed(2)}</td>
+                                                <td>${m.paymentDate}</td>
+                                                <td style="text-align: right;" class="${m.difference < 0 ? 'amount-negative' : 'amount-positive'}">
+                                                    ${m.difference < 0 ? '-' : '+'}$${Math.abs(m.difference).toFixed(2)}
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                        <tr style="background: #f0f0f0; font-weight: bold;">
+                                            <td colspan="2">TOTALS</td>
+                                            <td style="text-align: right;">-</td>
+                                            <td style="text-align: right;">$${totalExpected.toFixed(2)}</td>
+                                            <td style="text-align: right;">$${totalReceived.toFixed(2)}</td>
+                                            <td>-</td>
+                                            <td style="text-align: right;" class="${totalDifference < 0 ? 'amount-negative' : 'amount-positive'}">
+                                                ${totalDifference < 0 ? '-' : '+'}$${Math.abs(totalDifference).toFixed(2)}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Report B: Orphaned Payments
+                const orphaned = [];
+                const masterSummons = new Set(merged.map(row => (row['Summons Number'] || '').trim()));
+
+                paid.forEach(paidRow => {
+                    const summonsNum = (paidRow['Summons #'] || paidRow['Summons Number'] || '').trim();
+                    if (summonsNum && !masterSummons.has(summonsNum)) {
+                        const amountFields = ['Paid To Me', 'Amount', 'Payment Amount', 'Check Amount', 'Amount Received', 'Paid Amount', 'Amount Paid'];
+                        let amount = 0;
+                        
+                        for (const field of amountFields) {
+                            if (paidRow[field]) {
+                                amount = parseFloat((paidRow[field] || '').replace(/[$,]/g, ''));
+                                if (!isNaN(amount) && amount > 0) break;
+                            }
+                        }
+
+                        const invoiceNum = 'BP' + summonsNum.substring(1);
+                        const paymentDate = paidRow['Payment Received'] || paidRow['Date Received'] || '';
+
+                        orphaned.push({
+                            summons: summonsNum,
+                            invoice: invoiceNum,
+                            amount: amount,
+                            paymentDate: paymentDate
+                        });
+                    }
+                });
+
+                if (orphaned.length > 0) {
+                    orphanedHTML += `
+                        <div style="margin-bottom: 30px;">
+                            <h4 style="color: #1e3c72; margin-bottom: 15px; font-size: 1.1em;">${datasetName} - ${orphaned.length} Orphaned Payments</h4>
+                            <div style="overflow-x: auto;">
+                                <table class="discrepancy-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Invoice #</th>
+                                            <th style="text-align: right;">Amount</th>
+                                            <th>Payment Date</th>
+                                            <th>Note</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${orphaned.map(o => `
+                                            <tr>
+                                                <td>${o.invoice}</td>
+                                                <td style="text-align: right;">$${o.amount.toFixed(2)}</td>
+                                                <td>${o.paymentDate}</td>
+                                                <td style="font-style: italic; color: #666;">Not in master dataset</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            mismatchesDiv.innerHTML = mismatchesHTML || '<p style="color: #27ae60; font-weight: bold;">✅ No payment mismatches found!</p>';
+            orphanedDiv.innerHTML = orphanedHTML || '<p style="color: #27ae60; font-weight: bold;">✅ No orphaned payments found!</p>';
+        }
+
+        function initializeMap() {
+            if (!map) {
+                map = new google.maps.Map(document.getElementById('map'), {
+                    center: { lat: 40.7128, lng: -74.0060 },
+                    zoom: 11
+                });
+            }
+
+            const uniqueDates = new Set();
+            ['at', 'at-nyc', 'mbt'].forEach(tab => {
+                appData[tab].merged.forEach(row => {
+                    if (row['Violation Date']) {
+                        uniqueDates.add(row['Violation Date']);
+                    }
+                });
+            });
+
+            const dateSelect = document.getElementById('map-date-filter');
+            dateSelect.innerHTML = '<option value="">All Dates</option>';
+            [...uniqueDates].sort().reverse().forEach(date => {
+                dateSelect.innerHTML += `<option value="${date}">${date}</option>`;
+            });
+
+            updateMapMarkers();
+        }
+
+        function updateMapMarkers() {
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+
+            const showAT = document.getElementById('map-show-at').checked;
+            const showATNYC = document.getElementById('map-show-at-nyc').checked;
+            const showMBT = document.getElementById('map-show-mbt').checked;
+            const selectedDate = document.getElementById('map-date-filter')?.value || '';
+
+            const datasets = [
+                { tab: 'at', color: 'red', show: showAT },
+                { tab: 'at-nyc', color: 'blue', show: showATNYC },
+                { tab: 'mbt', color: 'green', show: showMBT }
+            ];
+
+            datasets.forEach(dataset => {
+                if (!dataset.show) return;
+                
+                const data = appData[dataset.tab].merged;
+                data.forEach(row => {
+                    if (selectedDate && row['Violation Date'] !== selectedDate) {
+                        return;
+                    }
+
+                    const house = row['Violation Location (House #)'];
+                    const street = row['Violation Location (Street Name)'];
+                    const city = row['Violation Location (City)'] || 'New York';
+
+                    if (house && street) {
+                        const address = `${house} ${street}, ${city}, NY`;
+                        geocodeAddress(address, row, dataset.tab, dataset.color);
+                    }
+                });
+            });
+        }
+
+        function geocodeAddress(address, row, tab, color) {
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ address: address }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    const marker = new google.maps.Marker({
+                        map: map,
+                        position: results[0].geometry.location,
+                        title: `${tab.toUpperCase()}: ${row['Summons Number']}`,
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 8,
+                            fillColor: color,
+                            fillOpacity: 0.8,
+                            strokeColor: 'white',
+                            strokeWeight: 2
+                        }
+                    });
+
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: `
+                            <div style="color: black;">
+                                <strong>Dataset:</strong> ${tab.toUpperCase()}<br>
+                                <strong>Summons:</strong> ${row['Summons Number']}<br>
+                                <strong>Location:</strong> ${address}<br>
+                                <strong>Payment Status:</strong> ${row['Payment Status'] || 'N/A'}<br>
+                                <strong>Paid Amount:</strong> ${row['Paid Amount'] || 'N/A'}
+                            </div>
+                        `
+                    });
+
+                    marker.addListener('click', () => {
+                        infoWindow.open(map, marker);
+                    });
+
+                    markers.push(marker);
+                }
+            });
+        }
+
+        function setChartType(type) {
+            currentChartType = type;
+            document.querySelectorAll('.chart-type-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function updateGlobalChart() {
+            const tabSelector = document.getElementById('chart-tab-selector').value;
+            const fieldSelector = document.getElementById('chart-field-selector').value;
+            const sortBy = document.getElementById('chart-sort').value;
+            const maxItems = parseInt(document.getElementById('chart-max-items').value || 10);
+
+            let data = [];
+            if (tabSelector === 'all') {
+                ['at', 'at-nyc', 'mbt'].forEach(tab => data.push(...appData[tab].merged));
+            } else {
+                data = appData[tabSelector].merged;
+            }
+
+            if (data.length === 0) {
+                alert('No data available.');
+                return;
+            }
+
+            const counts = {};
+            data.forEach(row => {
+                const value = row[fieldSelector] || 'Unknown';
+                counts[value] = (counts[value] || 0) + 1;
+            });
+
+            let entries = Object.entries(counts);
+
+            if (sortBy === 'value-desc') {
+                entries.sort((a, b) => b[1] - a[1]);
+            } else if (sortBy === 'value-asc') {
+                entries.sort((a, b) => a[1] - b[1]);
+            } else if (sortBy === 'label-asc') {
+                entries.sort((a, b) => a[0].localeCompare(b[0]));
+            } else if (sortBy === 'label-desc') {
+                entries.sort((a, b) => b[0].localeCompare(a[0]));
+            }
+
+            entries = entries.slice(0, maxItems);
+
+            const labels = entries.map(e => e[0]);
+            const values = entries.map(e => e[1]);
+
+            const colors = labels.map((_, i) => {
+                const hue = (i * 360 / labels.length);
+                return `hsl(${hue}, 70%, 60%)`;
+            });
+
+            const ctx = document.getElementById('global-chart').getContext('2d');
+
+            if (globalChart) globalChart.destroy();
+
+            globalChart = new Chart(ctx, {
+                type: currentChartType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { font: { size: 10 }, padding: 8 }
+                        },
+                        title: {
+                            display: true,
+                            text: `${fieldSelector} Distribution`,
+                            font: { size: 16, weight: 'bold' },
+                            color: '#1e3c72'
+                        }
+                    }
+                }
+            });
+
+            const total = values.reduce((a, b) => a + b, 0);
+            const avg = total / values.length;
+            const max = Math.max(...values);
+            const min = Math.min(...values);
+            
+            document.getElementById('chart-stats').innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                    <div style="padding: 15px; background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%); border-radius: 6px; text-align: center;">
+                        <div style="color: white; font-size: 0.8em; opacity: 0.9;">TOTAL COUNT</div>
+                        <div style="color: white; font-size: 1.8em; font-weight: bold;">${total.toLocaleString()}</div>
+                    </div>
+                    <div style="padding: 15px; background: #3498db; border-radius: 6px; text-align: center;">
+                        <div style="color: white; font-size: 0.8em; opacity: 0.9;">AVERAGE</div>
+                        <div style="color: white; font-size: 1.5em; font-weight: bold;">${avg.toFixed(1)}</div>
+                    </div>
+                    <div style="padding: 15px; background: #27ae60; border-radius: 6px; text-align: center;">
+                        <div style="color: white; font-size: 0.8em; opacity: 0.9;">HIGHEST</div>
+                        <div style="color: white; font-size: 1.5em; font-weight: bold;">${max.toLocaleString()}</div>
+                    </div>
+                    <div style="padding: 15px; background: #e74c3c; border-radius: 6px; text-align: center;">
+                        <div style="color: white; font-size: 0.8em; opacity: 0.9;">LOWEST</div>
+                        <div style="color: white; font-size: 1.5em; font-weight: bold;">${min.toLocaleString()}</div>
+                    </div>
+                    <div style="padding: 15px; background: #9b59b6; border-radius: 6px; text-align: center;">
+                        <div style="color: white; font-size: 0.8em; opacity: 0.9;">CATEGORIES</div>
+                        <div style="color: white; font-size: 1.5em; font-weight: bold;">${labels.length}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function exportChartData() {
+            const canvas = document.getElementById('global-chart');
+            const link = document.createElement('a');
+            link.download = 'chart.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        function saveToStorage() {
+            try {
+                const saveData = {};
+                ['at', 'at-nyc', 'mbt'].forEach(tab => {
+                    saveData[tab] = {
+                        master: appData[tab].master,
+                        paid: appData[tab].paid,
+                        requests: appData[tab].requests,
+                        merged: appData[tab].merged,
+                        lastRefreshSheets: appData[tab].lastRefreshSheets,
+                        lastRefreshNYC: appData[tab].lastRefreshNYC
+                    };
+                });
+                localStorage.setItem('truckDataManager', JSON.stringify(saveData));
+            } catch (e) {
+                console.error('Error saving to localStorage:', e);
+            }
+        }
+
+        function loadFromStorage() {
+            try {
+                const saved = localStorage.getItem('truckDataManager');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    Object.keys(parsed).forEach(tab => {
+                        if (appData[tab] && parsed[tab]) {
+                            appData[tab].master = parsed[tab].master || [];
+                            appData[tab].paid = parsed[tab].paid || [];
+                            appData[tab].requests = parsed[tab].requests || [];
+                            appData[tab].merged = parsed[tab].merged || [];
+                            appData[tab].lastRefreshSheets = parsed[tab].lastRefreshSheets || null;
+                            appData[tab].lastRefreshNYC = parsed[tab].lastRefreshNYC || null;
+                        }
+                    });
+                    ['at', 'at-nyc', 'mbt'].forEach(tab => {
+                        if (appData[tab].merged.length > 0) {
+                            applyFilters(tab);
+                            populateFilterDropdowns(tab);
+                            populateAdvancedFilterColumns(tab);
+                        }
+                    });
+                    updateRefreshTimestamps();
+                }
+            } catch (e) {
+                console.error('Error loading from localStorage:', e);
+            }
+        }
+
+        function updateRefreshTimestamps() {
+            ['at', 'at-nyc', 'mbt'].forEach(tab => {
+                const sheetsTime = appData[tab].lastRefreshSheets;
+                const nycTime = appData[tab].lastRefreshNYC;
+                
+                const sheetsDisplay = sheetsTime ? new Date(sheetsTime).toLocaleString() : 'Never';
+                const nycDisplay = nycTime ? new Date(nycTime).toLocaleString() : 'Never';
+                
+                const controlsDiv = document.querySelector(`#${tab} .controls`);
+                if (controlsDiv) {
+                    let timestampDiv = controlsDiv.querySelector('.timestamp-display');
+                    if (!timestampDiv) {
+                        timestampDiv = document.createElement('div');
+                        timestampDiv.className = 'timestamp-display';
+                        timestampDiv.style.cssText = 'font-size: 0.8em; color: #666; margin-left: auto;';
+                        controlsDiv.appendChild(timestampDiv);
+                    }
+                    timestampDiv.innerHTML = `Last refresh: Sheets (${sheetsDisplay}) | NYC OpenData (${nycDisplay})`;
+                }
+            });
+        }
+    </script>
+</body>
+</html>
