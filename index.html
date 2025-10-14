@@ -913,6 +913,7 @@
             <button class="tab-button" onclick="switchTab('mbt')">🚚 MBT</button>
             <button class="tab-button" onclick="switchTab('new-money')">💰 NEW MONEY</button>
             <button class="tab-button" onclick="switchTab('discrepancies')">⚠️ DISC</button>
+            <button class="tab-button" onclick="switchTab('trends')">📈 TRENDS</button>
             <button class="tab-button" onclick="switchTab('fun-facts')">🎉 FACTS</button>
             <button class="tab-button" onclick="switchTab('charts')">📊 CHARTS</button>
             <button class="tab-button" onclick="switchTab('settings')">⚙️ SET</button>
@@ -995,8 +996,8 @@
                 <button onclick="changePage('at', 1)">Next</button>
                 <select id="at-page-size" onchange="changePageSize('at')">
                     <option value="50">50 per page</option>
-                    <option value="100" selected>100 per page</option>
-                    <option value="all">Show All</option>
+                    <option value="100">100 per page</option>
+                    <option value="all" selected>Show All</option>
                 </select>
             </div>
 
@@ -1080,8 +1081,8 @@
                 <button onclick="changePage('at-nyc', 1)">Next</button>
                 <select id="at-nyc-page-size" onchange="changePageSize('at-nyc')">
                     <option value="50">50 per page</option>
-                    <option value="100" selected>100 per page</option>
-                    <option value="all">Show All</option>
+                    <option value="100">100 per page</option>
+                    <option value="all" selected>Show All</option>
                 </select>
             </div>
 
@@ -1165,8 +1166,8 @@
                 <button onclick="changePage('mbt', 1)">Next</button>
                 <select id="mbt-page-size" onchange="changePageSize('mbt')">
                     <option value="50">50 per page</option>
-                    <option value="100" selected>100 per page</option>
-                    <option value="all">Show All</option>
+                    <option value="100">100 per page</option>
+                    <option value="all" selected>Show All</option>
                 </select>
             </div>
 
@@ -1244,6 +1245,86 @@
             </div>
         </div>
 
+        <!-- TRENDS Tab -->
+        <div id="trends" class="tab-content">
+            <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                <h3 style="color: #1e3c72; margin-bottom: 12px;">📈 Trends Over Time</h3>
+                <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">Track how your summons data changes over time with interactive trend analysis.</p>
+                
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="generateAllTrends()">🔄 Generate All Trends</button>
+                    <div class="filter-item">
+                        <select id="trends-dataset" onchange="generateAllTrends()">
+                            <option value="all">All Datasets</option>
+                            <option value="at">AT Only</option>
+                            <option value="at-nyc">AT NYC Only</option>
+                            <option value="mbt">MBT Only</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <select id="trends-grouping" onchange="generateAllTrends()">
+                            <option value="month">By Month</option>
+                            <option value="quarter">By Quarter</option>
+                            <option value="year">By Year</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summons Volume Over Time -->
+            <div class="chart-section">
+                <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">📊 Summons Volume Over Time</h4>
+                <p style="color: #666; font-size: 0.85em; margin-bottom: 12px;">Total number of summonses issued per time period</p>
+                <div class="chart-canvas-container">
+                    <canvas id="trend-volume-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Payment Status Trend -->
+            <div class="chart-section">
+                <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">💰 Payment Collection Trend</h4>
+                <p style="color: #666; font-size: 0.85em; margin-bottom: 12px;">Track how payments, requests, and disqualifications change over time</p>
+                <div class="chart-canvas-container">
+                    <canvas id="trend-payment-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Revenue Over Time -->
+            <div class="chart-section">
+                <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">💵 Revenue Over Time</h4>
+                <p style="color: #666; font-size: 0.85em; margin-bottom: 12px;">Total amount paid to NYC and your 25% share</p>
+                <div class="chart-canvas-container">
+                    <canvas id="trend-revenue-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Disqualification Rate -->
+            <div class="chart-section">
+                <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">❌ Disqualification Rate Over Time</h4>
+                <p style="color: #666; font-size: 0.85em; margin-bottom: 12px;">Percentage of cases disqualified per period</p>
+                <div class="chart-canvas-container">
+                    <canvas id="trend-disqualification-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Key Metrics Summary -->
+            <div style="background: white; padding: 15px; border-radius: 6px; margin-top: 15px;">
+                <h4 style="color: #1e3c72; margin-bottom: 12px; font-size: 1em;">📋 Period Comparison</h4>
+                <div id="period-comparison" style="overflow-x: auto;">
+                    <p style="color: #666; font-size: 0.85em;">Generate trends to see period-over-period comparisons</p>
+                </div>
+            </div>
+
+            <!-- Top Companies Trend -->
+            <div class="chart-section">
+                <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">🏢 Top Companies Activity Over Time</h4>
+                <p style="color: #666; font-size: 0.85em; margin-bottom: 12px;">Track summons volume for top 5 companies</p>
+                <div class="chart-canvas-container">
+                    <canvas id="trend-companies-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
         <!-- FUN FACTS Tab -->
         <div id="fun-facts" class="tab-content">
             <div class="controls">
@@ -1257,42 +1338,155 @@
             <div class="chart-section">
                 <h3 style="margin-bottom: 15px; color: #1e3c72;">📊 Data Visualizations</h3>
                 
-                <div class="chart-type-buttons">
-                    <button class="chart-type-btn active" onclick="setChartType('pie')">Pie</button>
-                    <button class="chart-type-btn" onclick="setChartType('bar')">Bar</button>
-                    <button class="chart-type-btn" onclick="setChartType('line')">Line</button>
-                    <button class="chart-type-btn" onclick="setChartType('doughnut')">Doughnut</button>
-                </div>
-
-                <div class="chart-controls">
-                    <div class="chart-control-group">
-                        <label>Data Source</label>
-                        <select id="chart-tab-selector">
-                            <option value="all">All Datasets</option>
-                            <option value="at">AT Only</option>
-                            <option value="at-nyc">AT NYC Only</option>
-                            <option value="mbt">MBT Only</option>
-                        </select>
-                    </div>
-
-                    <div class="chart-control-group">
-                        <label>Chart Field</label>
-                        <select id="chart-field-selector">
-                            <option value="Payment Status">Payment Status</option>
-                            <option value="Status">Status</option>
-                            <option value="Hearing Status">Hearing Status</option>
-                            <option value="Company Name">Company Name</option>
-                        </select>
+                <!-- Quick Insights -->
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                    <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">⚡ Quick Insights</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px;">
+                        <button class="btn btn-primary" onclick="showPaymentStatusChart()" style="font-size: 0.75em; padding: 8px;">Payment Status</button>
+                        <button class="btn btn-primary" onclick="showCompanyChart()" style="font-size: 0.75em; padding: 8px;">Top Companies</button>
+                        <button class="btn btn-primary" onclick="showBoroughChart()" style="font-size: 0.75em; padding: 8px;">By Borough</button>
+                        <button class="btn btn-primary" onclick="showMonthlyTrend()" style="font-size: 0.75em; padding: 8px;">Monthly Trend</button>
+                        <button class="btn btn-primary" onclick="showHearingResults()" style="font-size: 0.75em; padding: 8px;">Hearing Results</button>
+                        <button class="btn btn-primary" onclick="showRevenueAnalysis()" style="font-size: 0.75em; padding: 8px;">Revenue Analysis</button>
                     </div>
                 </div>
 
-                <button class="btn btn-primary" onclick="updateGlobalChart()">Generate Chart</button>
+                <!-- Custom Chart Builder -->
+                <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 2px solid #5a7fa7;">
+                    <h4 style="color: #1e3c72; margin-bottom: 12px; font-size: 1em;">🎨 Custom Chart Builder</h4>
+                    
+                    <div class="chart-type-buttons">
+                        <button class="chart-type-btn active" onclick="setChartType('pie')">Pie</button>
+                        <button class="chart-type-btn" onclick="setChartType('bar')">Bar</button>
+                        <button class="chart-type-btn" onclick="setChartType('line')">Line</button>
+                        <button class="chart-type-btn" onclick="setChartType('doughnut')">Doughnut</button>
+                        <button class="chart-type-btn" onclick="setChartType('horizontalBar')">H-Bar</button>
+                    </div>
 
-                <div class="chart-canvas-container">
-                    <canvas id="global-chart"></canvas>
+                    <div class="chart-controls">
+                        <div class="chart-control-group">
+                            <label>📁 Data Source</label>
+                            <select id="chart-tab-selector">
+                                <option value="all">All Datasets Combined</option>
+                                <option value="at">AT Only</option>
+                                <option value="at-nyc">AT NYC Only</option>
+                                <option value="mbt">MBT Only</option>
+                            </select>
+                        </div>
+
+                        <div class="chart-control-group">
+                            <label>📊 Measure</label>
+                            <select id="chart-measure">
+                                <option value="count">Count of Records</option>
+                                <option value="sum-paid">Sum of Paid Amount</option>
+                                <option value="avg-paid">Average Paid Amount</option>
+                                <option value="sum-balance">Sum of Balance Due</option>
+                            </select>
+                        </div>
+
+                        <div class="chart-control-group">
+                            <label>🏷️ Group By</label>
+                            <select id="chart-field-selector">
+                                <option value="Payment Status">Payment Status</option>
+                                <option value="Status">Status</option>
+                                <option value="Hearing Status">Hearing Status</option>
+                                <option value="Hearing Result">Hearing Result</option>
+                                <option value="Company Name">Company Name</option>
+                                <option value="Issuing Agency">Issuing Agency</option>
+                                <option value="Violation Location (Borough)">Borough</option>
+                                <option value="month">Month (from Violation Date)</option>
+                                <option value="year">Year (from Violation Date)</option>
+                            </select>
+                        </div>
+
+                        <div class="chart-control-group">
+                            <label>🎯 Filter by Status</label>
+                            <select id="chart-status-filter">
+                                <option value="">All Statuses</option>
+                                <option value="paid">Paid Only</option>
+                                <option value="requested">Requested Only</option>
+                                <option value="disqualified">Disqualified Only</option>
+                                <option value="unpaid">Unpaid Only</option>
+                            </select>
+                        </div>
+
+                        <div class="chart-control-group">
+                            <label>📅 Date Range</label>
+                            <select id="chart-date-range">
+                                <option value="all">All Time</option>
+                                <option value="ytd">Year to Date</option>
+                                <option value="last-12">Last 12 Months</option>
+                                <option value="last-6">Last 6 Months</option>
+                                <option value="last-3">Last 3 Months</option>
+                                <option value="this-year">This Year</option>
+                                <option value="last-year">Last Year</option>
+                            </select>
+                        </div>
+
+                        <div class="chart-control-group">
+                            <label>🔢 Max Items</label>
+                            <select id="chart-max-items">
+                                <option value="5">Top 5</option>
+                                <option value="10" selected>Top 10</option>
+                                <option value="15">Top 15</option>
+                                <option value="20">Top 20</option>
+                                <option value="all">Show All</option>
+                            </select>
+                        </div>
+
+                        <div class="chart-control-group">
+                            <label>📈 Sort By</label>
+                            <select id="chart-sort">
+                                <option value="value-desc">Value (High to Low)</option>
+                                <option value="value-asc">Value (Low to High)</option>
+                                <option value="label-asc">Label (A to Z)</option>
+                                <option value="label-desc">Label (Z to A)</option>
+                            </select>
+                        </div>
+
+                        <div class="chart-control-group">
+                            <label>🎨 Color Scheme</label>
+                            <select id="chart-color-scheme">
+                                <option value="default">Default Rainbow</option>
+                                <option value="blue">Blue Gradient</option>
+                                <option value="green">Green Gradient</option>
+                                <option value="red">Red Gradient</option>
+                                <option value="purple">Purple Gradient</option>
+                                <option value="status">Status Colors</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 15px;">
+                        <button class="btn btn-primary" onclick="updateGlobalChart()">🎨 Generate Chart</button>
+                        <button class="btn btn-success" onclick="exportChartImage()">💾 Save as Image</button>
+                        <button class="btn" onclick="exportChartDataCSV()">📄 Export Data (CSV)</button>
+                    </div>
                 </div>
 
-                <div id="chart-stats" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;"></div>
+                <!-- Chart Display Area -->
+                <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                    <div id="chart-title" style="text-align: center; font-size: 1.1em; font-weight: bold; color: #1e3c72; margin-bottom: 15px;">
+                        Select options and click Generate Chart
+                    </div>
+                    <div class="chart-canvas-container">
+                        <canvas id="global-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Statistics Panel -->
+                <div id="chart-stats" style="background: #f8f9fa; padding: 15px; border-radius: 6px; display: none;"></div>
+
+                <!-- Data Table -->
+                <div id="chart-data-table" style="background: white; padding: 15px; border-radius: 6px; margin-top: 20px; display: none;">
+                    <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">📋 Chart Data</h4>
+                    <div style="overflow-x: auto;">
+                        <table id="chart-table" style="width: 100%; font-size: 0.85em;">
+                            <thead id="chart-table-head"></thead>
+                            <tbody id="chart-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1354,9 +1548,9 @@
     <script>
         // Global data storage
         const appData = {
-            'at': { master: [], paid: [], requests: [], merged: [], filtered: [], currentPage: 1, pageSize: 100, showExtra: false, lastRefreshSheets: null, lastRefreshNYC: null },
-            'at-nyc': { master: [], paid: [], requests: [], merged: [], filtered: [], currentPage: 1, pageSize: 100, showExtra: false, lastRefreshSheets: null, lastRefreshNYC: null },
-            'mbt': { master: [], paid: [], requests: [], merged: [], filtered: [], currentPage: 1, pageSize: 100, showExtra: false, lastRefreshSheets: null, lastRefreshNYC: null }
+            'at': { master: [], paid: [], requests: [], merged: [], filtered: [], currentPage: 1, pageSize: 'all', showExtra: false, lastRefreshSheets: null, lastRefreshNYC: null },
+            'at-nyc': { master: [], paid: [], requests: [], merged: [], filtered: [], currentPage: 1, pageSize: 'all', showExtra: false, lastRefreshSheets: null, lastRefreshNYC: null },
+            'mbt': { master: [], paid: [], requests: [], merged: [], filtered: [], currentPage: 1, pageSize: 'all', showExtra: false, lastRefreshSheets: null, lastRefreshNYC: null }
         };
 
         const sheetURLs = {
@@ -1802,7 +1996,7 @@
 
         function clearData(tab) {
             if (!confirm(`Clear all data for ${tab.toUpperCase()}?`)) return;
-            appData[tab] = { master: [], paid: [], requests: [], merged: [], filtered: [], currentPage: 1, pageSize: 100 };
+            appData[tab] = { master: [], paid: [], requests: [], merged: [], filtered: [], currentPage: 1, pageSize: 'all' };
             saveToStorage();
             applyFilters(tab);
         }
@@ -2312,12 +2506,31 @@
 
                 // NEW REPORT: Paid But Not "Paid in Full"
                 const paidNotFull = [];
+                
+                // Create sets of summons numbers that are in Paid or Requested datasets
+                const paidSummonsSet = new Set();
+                paid.forEach(row => {
+                    const summonsNum = (row['Summons #'] || row['Summons Number'] || '').trim();
+                    if (summonsNum) paidSummonsSet.add(summonsNum);
+                });
+                
+                const requestedSummonsSet = new Set();
+                appData[tab].requests.forEach(row => {
+                    const summonsNum = (row['Complaint Number'] || row['Summons Number'] || '').trim();
+                    if (summonsNum) requestedSummonsSet.add(summonsNum);
+                });
+                
                 merged.forEach(row => {
                     const paidAmount = parseFloat((row['Paid Amount'] || '').replace(/[$,]/g, ''));
                     const hearingStatus = (row['Hearing Status'] || '').toLowerCase();
                     const summonsNum = (row['Summons Number'] || '').trim();
                     
-                    if (!isNaN(paidAmount) && paidAmount > 0 && hearingStatus !== 'paid in full' && summonsNum) {
+                    // Only include if: has paid amount, not "paid in full", and NOT in Paid or Requested datasets
+                    if (!isNaN(paidAmount) && paidAmount > 0 && 
+                        hearingStatus !== 'paid in full' && 
+                        summonsNum &&
+                        !paidSummonsSet.has(summonsNum) &&
+                        !requestedSummonsSet.has(summonsNum)) {
                         const invoiceNum = 'BP' + summonsNum.substring(1);
                         paidNotFull.push({
                             invoice: invoiceNum,
@@ -2438,9 +2651,145 @@
             event.target.classList.add('active');
         }
 
+        function getChartColors(count, scheme) {
+            const schemes = {
+                'default': (i, total) => `hsl(${(i * 360 / total)}, 70%, 60%)`,
+                'blue': (i, total) => `hsl(210, ${70 - (i * 40 / total)}%, ${60 - (i * 30 / total)}%)`,
+                'green': (i, total) => `hsl(120, ${70 - (i * 40 / total)}%, ${50 - (i * 30 / total)}%)`,
+                'red': (i, total) => `hsl(0, ${70 - (i * 40 / total)}%, ${60 - (i * 30 / total)}%)`,
+                'purple': (i, total) => `hsl(280, ${70 - (i * 40 / total)}%, ${60 - (i * 30 / total)}%)`,
+                'status': (i, total, label) => {
+                    const statusColors = {
+                        'PAID TO ME': '#27ae60',
+                        'REQUESTED': '#f39c12',
+                        'Paid': '#27ae60',
+                        'Requested': '#f39c12',
+                        'Disqualified': '#e74c3c',
+                        'Submitted': '#9b59b6',
+                        'Unpaid': '#95a5a6'
+                    };
+                    return statusColors[label] || `hsl(${(i * 360 / total)}, 70%, 60%)`;
+                }
+            };
+            return schemes[scheme] || schemes['default'];
+        }
+
+        function filterDataByDateRange(data, dateRange) {
+            if (dateRange === 'all') return data;
+            
+            const now = new Date();
+            const getDateThreshold = () => {
+                switch(dateRange) {
+                    case 'ytd':
+                        return new Date(now.getFullYear(), 0, 1);
+                    case 'last-12':
+                        return new Date(now.setMonth(now.getMonth() - 12));
+                    case 'last-6':
+                        return new Date(now.setMonth(now.getMonth() - 6));
+                    case 'last-3':
+                        return new Date(now.setMonth(now.getMonth() - 3));
+                    case 'this-year':
+                        return new Date(now.getFullYear(), 0, 1);
+                    case 'last-year':
+                        return [new Date(now.getFullYear() - 1, 0, 1), new Date(now.getFullYear() - 1, 11, 31)];
+                    default:
+                        return null;
+                }
+            };
+            
+            const threshold = getDateThreshold();
+            if (!threshold) return data;
+            
+            return data.filter(row => {
+                const dateStr = row['Violation Date'] || row['Date Submitted'];
+                if (!dateStr) return false;
+                const rowDate = new Date(dateStr);
+                if (Array.isArray(threshold)) {
+                    return rowDate >= threshold[0] && rowDate <= threshold[1];
+                }
+                return rowDate >= threshold;
+            });
+        }
+
+        function groupByMonth(data) {
+            const monthCounts = {};
+            data.forEach(row => {
+                const dateStr = row['Violation Date'] || row['Date Submitted'];
+                if (dateStr) {
+                    const date = new Date(dateStr);
+                    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
+                }
+            });
+            return monthCounts;
+        }
+
+        function groupByYear(data) {
+            const yearCounts = {};
+            data.forEach(row => {
+                const dateStr = row['Violation Date'] || row['Date Submitted'];
+                if (dateStr) {
+                    const date = new Date(dateStr);
+                    const year = date.getFullYear();
+                    yearCounts[year] = (yearCounts[year] || 0) + 1;
+                }
+            });
+            return yearCounts;
+        }
+
+        function calculateMeasure(data, measure, field) {
+            if (measure === 'count') {
+                const counts = {};
+                data.forEach(row => {
+                    const value = row[field] || 'Unknown';
+                    counts[value] = (counts[value] || 0) + 1;
+                });
+                return counts;
+            } else if (measure === 'sum-paid') {
+                const sums = {};
+                data.forEach(row => {
+                    const value = row[field] || 'Unknown';
+                    const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                    sums[value] = (sums[value] || 0) + (isNaN(amount) ? 0 : amount);
+                });
+                return sums;
+            } else if (measure === 'avg-paid') {
+                const sums = {};
+                const counts = {};
+                data.forEach(row => {
+                    const value = row[field] || 'Unknown';
+                    const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                    if (!isNaN(amount) && amount > 0) {
+                        sums[value] = (sums[value] || 0) + amount;
+                        counts[value] = (counts[value] || 0) + 1;
+                    }
+                });
+                const avgs = {};
+                Object.keys(sums).forEach(key => {
+                    avgs[key] = sums[key] / (counts[key] || 1);
+                });
+                return avgs;
+            } else if (measure === 'sum-balance') {
+                const sums = {};
+                data.forEach(row => {
+                    const value = row[field] || 'Unknown';
+                    const amount = parseFloat((row['Balance Due'] || '0').replace(/[$,]/g, ''));
+                    sums[value] = (sums[value] || 0) + (isNaN(amount) ? 0 : amount);
+                });
+                return sums;
+            }
+            return {};
+        }
+
         function updateGlobalChart() {
             const tabSelector = document.getElementById('chart-tab-selector').value;
             const fieldSelector = document.getElementById('chart-field-selector').value;
+            const measure = document.getElementById('chart-measure').value;
+            const sortBy = document.getElementById('chart-sort').value;
+            const maxItems = document.getElementById('chart-max-items').value;
+            const statusFilter = document.getElementById('chart-status-filter').value;
+            const dateRange = document.getElementById('chart-date-range').value;
+            const colorScheme = document.getElementById('chart-color-scheme').value;
 
             let data = [];
             if (tabSelector === 'all') {
@@ -2450,37 +2799,75 @@
             }
 
             if (data.length === 0) {
-                alert('No data available.');
+                alert('No data available. Please load data first.');
                 return;
             }
 
-            const counts = {};
-            data.forEach(row => {
-                const value = row[fieldSelector] || 'Unknown';
-                counts[value] = (counts[value] || 0) + 1;
-            });
+            // Apply status filter
+            if (statusFilter) {
+                data = data.filter(row => {
+                    if (statusFilter === 'paid') return row['_rowType'] === 'paid';
+                    if (statusFilter === 'requested') return row['_rowType'] === 'requested';
+                    if (statusFilter === 'disqualified') return row['_rowType'] === 'disqualified';
+                    if (statusFilter === 'unpaid') return !row['Payment Status'] || row['Payment Status'] === '';
+                    return true;
+                });
+            }
 
-            let entries = Object.entries(counts);
-            entries.sort((a, b) => b[1] - a[1]);
-            entries = entries.slice(0, 10);
+            // Apply date range filter
+            data = filterDataByDateRange(data, dateRange);
+
+            let chartData;
+            if (fieldSelector === 'month') {
+                chartData = groupByMonth(data);
+            } else if (fieldSelector === 'year') {
+                chartData = groupByYear(data);
+            } else {
+                chartData = calculateMeasure(data, measure, fieldSelector);
+            }
+
+            let entries = Object.entries(chartData);
+
+            // Sort
+            if (sortBy === 'value-desc') {
+                entries.sort((a, b) => b[1] - a[1]);
+            } else if (sortBy === 'value-asc') {
+                entries.sort((a, b) => a[1] - b[1]);
+            } else if (sortBy === 'label-asc') {
+                entries.sort((a, b) => a[0].localeCompare(b[0]));
+            } else if (sortBy === 'label-desc') {
+                entries.sort((a, b) => b[0].localeCompare(a[0]));
+            }
+
+            // Limit items
+            if (maxItems !== 'all') {
+                entries = entries.slice(0, parseInt(maxItems));
+            }
+
+            if (entries.length === 0) {
+                alert('No data matches the selected filters.');
+                return;
+            }
 
             const labels = entries.map(e => e[0]);
             const values = entries.map(e => e[1]);
 
-            const colors = labels.map((_, i) => {
-                const hue = (i * 360 / labels.length);
-                return `hsl(${hue}, 70%, 60%)`;
-            });
+            const colorFunc = getChartColors(labels.length, colorScheme);
+            const colors = labels.map((label, i) => colorFunc(i, labels.length, label));
 
             const ctx = document.getElementById('global-chart').getContext('2d');
 
             if (globalChart) globalChart.destroy();
 
+            const chartType = currentChartType === 'horizontalBar' ? 'bar' : currentChartType;
+            const isHorizontal = currentChartType === 'horizontalBar';
+
             globalChart = new Chart(ctx, {
-                type: currentChartType,
+                type: chartType,
                 data: {
                     labels: labels,
                     datasets: [{
+                        label: getMeasureLabel(measure),
                         data: values,
                         backgroundColor: colors,
                         borderColor: '#fff',
@@ -2488,43 +2875,796 @@
                     }]
                 },
                 options: {
+                    indexAxis: isHorizontal ? 'y' : 'x',
                     responsive: true,
                     maintainAspectRatio: true,
                     plugins: {
                         legend: {
-                            position: 'bottom',
+                            position: chartType === 'line' || isHorizontal ? 'top' : 'right',
                             labels: { font: { size: 10 }, padding: 8 }
                         },
                         title: {
                             display: true,
-                            text: `${fieldSelector} Distribution`,
+                            text: getChartTitle(fieldSelector, measure),
                             font: { size: 14, weight: 'bold' },
                             color: '#1e3c72'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (measure.includes('sum') || measure.includes('avg')) {
+                                        label += '$' + context.parsed.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                    } else {
+                                        label += context.parsed.toLocaleString();
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: chartType === 'bar' || chartType === 'line' ? {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    if (measure.includes('sum') || measure.includes('avg')) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    } : {}
+                }
+            });
+
+            // Update title
+            document.getElementById('chart-title').textContent = getChartTitle(fieldSelector, measure);
+
+            // Show stats
+            displayChartStats(values, measure, labels.length, data.length);
+
+            // Show data table
+            displayChartDataTable(labels, values, measure);
+        }
+
+        function getMeasureLabel(measure) {
+            const labels = {
+                'count': 'Count',
+                'sum-paid': 'Total Paid Amount',
+                'avg-paid': 'Average Paid Amount',
+                'sum-balance': 'Total Balance Due'
+            };
+            return labels[measure] || 'Value';
+        }
+
+        function getChartTitle(field, measure) {
+            const measureName = getMeasureLabel(measure);
+            return `${measureName} by ${field}`;
+        }
+
+        function displayChartStats(values, measure, categoryCount, totalRecords) {
+            const total = values.reduce((a, b) => a + b, 0);
+            const avg = total / values.length;
+            const max = Math.max(...values);
+            const min = Math.min(...values);
+
+            const statsDiv = document.getElementById('chart-stats');
+            statsDiv.style.display = 'block';
+            
+            const isMonetary = measure.includes('sum') || measure.includes('avg');
+            const formatValue = (val) => {
+                if (isMonetary) {
+                    return '$' + val.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
+                return val.toLocaleString();
+            };
+
+            statsDiv.innerHTML = `
+                <h4 style="color: #1e3c72; margin-bottom: 12px; font-size: 1em;">📈 Statistics</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
+                    <div style="padding: 10px; background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%); border-radius: 6px; text-align: center;">
+                        <div style="color: white; font-size: 0.7em; opacity: 0.9;">TOTAL</div>
+                        <div style="color: white; font-size: 1.2em; font-weight: bold;">${formatValue(total)}</div>
+                    </div>
+                    <div style="padding: 10px; background: #3498db; border-radius: 6px; text-align: center;">
+                        <div style="color: white; font-size: 0.7em; opacity: 0.9;">AVERAGE</div>
+                        <div style="color: white; font-size: 1.2em; font-weight: bold;">${formatValue(avg)}</div>
+                    </div>
+                    <div style="padding: 10px; background: #27ae60; border-radius: 6px; text-align: center;">
+                        <div style="color: white; font-size: 0.7em; opacity: 0.9;">HIGHEST</div>
+                        <div style="color: white; font-size: 1.2em; font-weight: bold;">${formatValue(max)}</div>
+                    </div>
+                    <div style="padding: 10px; background: #e74c3c; border-radius: 6px; text-align: center;">
+                        <div style="color: white; font-size: 0.7em; opacity: 0.9;">LOWEST</div>
+                        <div style="color: white; font-size: 1.2em; font-weight: bold;">${formatValue(min)}</div>
+                    </div>
+                    <div style="padding: 10px; background: #9b59b6; border-radius: 6px; text-align: center;">
+                        <div style="color: white; font-size: 0.7em; opacity: 0.9;">CATEGORIES</div>
+                        <div style="color: white; font-size: 1.2em; font-weight: bold;">${categoryCount}</div>
+                    </div>
+                    <div style="padding: 10px; background: #34495e; border-radius: 6px; text-align: center;">
+                        <div style="color: white; font-size: 0.7em; opacity: 0.9;">RECORDS</div>
+                        <div style="color: white; font-size: 1.2em; font-weight: bold;">${totalRecords.toLocaleString()}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayChartDataTable(labels, values, measure) {
+            const tableDiv = document.getElementById('chart-data-table');
+            tableDiv.style.display = 'block';
+
+            const thead = document.getElementById('chart-table-head');
+            const tbody = document.getElementById('chart-table-body');
+
+            const isMonetary = measure.includes('sum') || measure.includes('avg');
+            const formatValue = (val) => {
+                if (isMonetary) {
+                    return '$' + val.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
+                return val.toLocaleString();
+            };
+
+            thead.innerHTML = `
+                <tr style="background: #1e3c72; color: white;">
+                    <th style="padding: 8px; text-align: left;">Category</th>
+                    <th style="padding: 8px; text-align: right;">${getMeasureLabel(measure)}</th>
+                    <th style="padding: 8px; text-align: right;">Percentage</th>
+                </tr>
+            `;
+
+            const total = values.reduce((a, b) => a + b, 0);
+            tbody.innerHTML = labels.map((label, i) => {
+                const percentage = ((values[i] / total) * 100).toFixed(1);
+                return `
+                    <tr style="border-bottom: 1px solid #ddd;">
+                        <td style="padding: 6px;">${label}</td>
+                        <td style="padding: 6px; text-align: right; font-weight: bold;">${formatValue(values[i])}</td>
+                        <td style="padding: 6px; text-align: right;">${percentage}%</td>
+                    </tr>
+                `;
+            }).join('') + `
+                <tr style="background: #f0f0f0; font-weight: bold;">
+                    <td style="padding: 6px;">TOTAL</td>
+                    <td style="padding: 6px; text-align: right;">${formatValue(total)}</td>
+                    <td style="padding: 6px; text-align: right;">100%</td>
+                </tr>
+            `;
+        }
+
+        // Quick Insight Functions
+        function showPaymentStatusChart() {
+            document.getElementById('chart-tab-selector').value = 'all';
+            document.getElementById('chart-measure').value = 'count';
+            document.getElementById('chart-field-selector').value = 'Payment Status';
+            document.getElementById('chart-status-filter').value = '';
+            document.getElementById('chart-date-range').value = 'all';
+            document.getElementById('chart-color-scheme').value = 'status';
+            setChartTypeByName('pie');
+            updateGlobalChart();
+        }
+
+        function showCompanyChart() {
+            document.getElementById('chart-tab-selector').value = 'all';
+            document.getElementById('chart-measure').value = 'count';
+            document.getElementById('chart-field-selector').value = 'Company Name';
+            document.getElementById('chart-status-filter').value = '';
+            document.getElementById('chart-date-range').value = 'all';
+            document.getElementById('chart-max-items').value = '10';
+            document.getElementById('chart-color-scheme').value = 'default';
+            setChartTypeByName('horizontalBar');
+            updateGlobalChart();
+        }
+
+        function showBoroughChart() {
+            document.getElementById('chart-tab-selector').value = 'all';
+            document.getElementById('chart-measure').value = 'count';
+            document.getElementById('chart-field-selector').value = 'Violation Location (Borough)';
+            document.getElementById('chart-status-filter').value = '';
+            document.getElementById('chart-date-range').value = 'all';
+            document.getElementById('chart-color-scheme').value = 'blue';
+            setChartTypeByName('bar');
+            updateGlobalChart();
+        }
+
+        function showMonthlyTrend() {
+            document.getElementById('chart-tab-selector').value = 'all';
+            document.getElementById('chart-measure').value = 'count';
+            document.getElementById('chart-field-selector').value = 'month';
+            document.getElementById('chart-status-filter').value = '';
+            document.getElementById('chart-date-range').value = 'last-12';
+            document.getElementById('chart-sort').value = 'label-asc';
+            document.getElementById('chart-max-items').value = 'all';
+            document.getElementById('chart-color-scheme').value = 'blue';
+            setChartTypeByName('line');
+            updateGlobalChart();
+        }
+
+        function showHearingResults() {
+            document.getElementById('chart-tab-selector').value = 'all';
+            document.getElementById('chart-measure').value = 'count';
+            document.getElementById('chart-field-selector').value = 'Hearing Result';
+            document.getElementById('chart-status-filter').value = '';
+            document.getElementById('chart-date-range').value = 'all';
+            document.getElementById('chart-color-scheme').value = 'purple';
+            setChartTypeByName('doughnut');
+            updateGlobalChart();
+        }
+
+        function showRevenueAnalysis() {
+            document.getElementById('chart-tab-selector').value = 'all';
+            document.getElementById('chart-measure').value = 'sum-paid';
+            document.getElementById('chart-field-selector').value = 'Company Name';
+            document.getElementById('chart-status-filter').value = 'paid';
+            document.getElementById('chart-date-range').value = 'all';
+            document.getElementById('chart-max-items').value = '10';
+            document.getElementById('chart-color-scheme').value = 'green';
+            setChartTypeByName('bar');
+            updateGlobalChart();
+        }
+
+        function setChartTypeByName(type) {
+            currentChartType = type;
+            document.querySelectorAll('.chart-type-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.chart-type-btn').forEach(btn => {
+                if (btn.textContent.toLowerCase().includes(type.toLowerCase().replace('horizontalbar', 'h-bar'))) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        function exportChartImage() {
+            if (!globalChart) {
+                alert('Please generate a chart first.');
+                return;
+            }
+            const canvas = document.getElementById('global-chart');
+            const link = document.createElement('a');
+            link.download = 'chart-' + new Date().getTime() + '.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function exportChartDataCSV() {
+            const thead = document.getElementById('chart-table-head');
+            const tbody = document.getElementById('chart-table-body');
+            
+            if (!thead || !tbody || tbody.children.length === 0) {
+                alert('Please generate a chart first.');
+                return;
+            }
+
+            let csv = 'Category,Value,Percentage\n';
+            Array.from(tbody.children).forEach(row => {
+                const cells = Array.from(row.children);
+                csv += cells.map(cell => '"' + cell.textContent.trim() + '"').join(',') + '\n';
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = 'chart-data-' + new Date().getTime() + '.csv';
+            link.href = url;
+            link.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // ===== TRENDS TAB FUNCTIONS =====
+        let trendCharts = {
+            volume: null,
+            payment: null,
+            revenue: null,
+            disqualification: null,
+            companies: null
+        };
+
+        function getTimeKey(date, grouping) {
+            const d = new Date(date);
+            if (isNaN(d.getTime())) return null;
+            
+            if (grouping === 'month') {
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            } else if (grouping === 'quarter') {
+                const quarter = Math.floor(d.getMonth() / 3) + 1;
+                return `${d.getFullYear()}-Q${quarter}`;
+            } else if (grouping === 'year') {
+                return `${d.getFullYear()}`;
+            }
+            return null;
+        }
+
+        function formatTimeLabel(key, grouping) {
+            if (grouping === 'month') {
+                const [year, month] = key.split('-');
+                const date = new Date(year, parseInt(month) - 1);
+                return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+            } else if (grouping === 'quarter') {
+                return key;
+            } else if (grouping === 'year') {
+                return key;
+            }
+            return key;
+        }
+
+        function getTrendData() {
+            const dataset = document.getElementById('trends-dataset').value;
+            let data = [];
+            
+            if (dataset === 'all') {
+                ['at', 'at-nyc', 'mbt'].forEach(tab => data.push(...appData[tab].merged));
+            } else {
+                data = appData[dataset].merged;
+            }
+            
+            return data;
+        }
+
+        function generateAllTrends() {
+            const data = getTrendData();
+            
+            if (data.length === 0) {
+                alert('No data available. Please load data first.');
+                return;
+            }
+
+            const grouping = document.getElementById('trends-grouping').value;
+            
+            generateVolumeChart(data, grouping);
+            generatePaymentTrendChart(data, grouping);
+            generateRevenueChart(data, grouping);
+            generateDisqualificationChart(data, grouping);
+            generateCompaniesChart(data, grouping);
+            generatePeriodComparison(data, grouping);
+        }
+
+        function generateVolumeChart(data, grouping) {
+            const timeData = {};
+            
+            data.forEach(row => {
+                const dateStr = row['Violation Date'] || row['Date Submitted'];
+                if (dateStr) {
+                    const key = getTimeKey(dateStr, grouping);
+                    if (key) {
+                        timeData[key] = (timeData[key] || 0) + 1;
+                    }
+                }
+            });
+
+            const sortedKeys = Object.keys(timeData).sort();
+            const labels = sortedKeys.map(key => formatTimeLabel(key, grouping));
+            const values = sortedKeys.map(key => timeData[key]);
+
+            const ctx = document.getElementById('trend-volume-chart').getContext('2d');
+            
+            if (trendCharts.volume) trendCharts.volume.destroy();
+            
+            trendCharts.volume = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Summons Issued',
+                        data: values,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: true, position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Summons: ' + context.parsed.y.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function generatePaymentTrendChart(data, grouping) {
+            const timeData = {};
+            
+            data.forEach(row => {
+                const dateStr = row['Violation Date'] || row['Date Submitted'];
+                if (dateStr) {
+                    const key = getTimeKey(dateStr, grouping);
+                    if (key) {
+                        if (!timeData[key]) {
+                            timeData[key] = { paid: 0, requested: 0, disqualified: 0, unpaid: 0 };
+                        }
+                        
+                        if (row['_rowType'] === 'paid') {
+                            timeData[key].paid++;
+                        } else if (row['_rowType'] === 'requested') {
+                            timeData[key].requested++;
+                        } else if (row['_rowType'] === 'disqualified') {
+                            timeData[key].disqualified++;
+                        } else {
+                            timeData[key].unpaid++;
                         }
                     }
                 }
             });
 
-            const total = values.reduce((a, b) => a + b, 0);
-            const avg = total / values.length;
-            const max = Math.max(...values);
+            const sortedKeys = Object.keys(timeData).sort();
+            const labels = sortedKeys.map(key => formatTimeLabel(key, grouping));
+
+            const ctx = document.getElementById('trend-payment-chart').getContext('2d');
             
-            document.getElementById('chart-stats').innerHTML = `
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px;">
-                    <div style="padding: 10px; background: #ff8c42; border-radius: 6px; text-align: center;">
-                        <div style="color: white; font-size: 0.7em;">TOTAL</div>
-                        <div style="color: white; font-size: 1.3em; font-weight: bold;">${total}</div>
-                    </div>
-                    <div style="padding: 10px; background: #3498db; border-radius: 6px; text-align: center;">
-                        <div style="color: white; font-size: 0.7em;">AVG</div>
-                        <div style="color: white; font-size: 1.3em; font-weight: bold;">${avg.toFixed(1)}</div>
-                    </div>
-                    <div style="padding: 10px; background: #27ae60; border-radius: 6px; text-align: center;">
-                        <div style="color: white; font-size: 0.7em;">MAX</div>
-                        <div style="color: white; font-size: 1.3em; font-weight: bold;">${max}</div>
-                    </div>
-                </div>
-            `;
+            if (trendCharts.payment) trendCharts.payment.destroy();
+            
+            trendCharts.payment = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Paid',
+                            data: sortedKeys.map(key => timeData[key].paid),
+                            borderColor: '#27ae60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Requested',
+                            data: sortedKeys.map(key => timeData[key].requested),
+                            borderColor: '#f39c12',
+                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Disqualified',
+                            data: sortedKeys.map(key => timeData[key].disqualified),
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Unpaid',
+                            data: sortedKeys.map(key => timeData[key].unpaid),
+                            borderColor: '#95a5a6',
+                            backgroundColor: 'rgba(149, 165, 166, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            stacked: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateRevenueChart(data, grouping) {
+            const timeData = {};
+            
+            data.forEach(row => {
+                const dateStr = row['Violation Date'] || row['Date Submitted'];
+                if (dateStr && row['_rowType'] === 'paid') {
+                    const key = getTimeKey(dateStr, grouping);
+                    if (key) {
+                        const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                        if (!isNaN(amount)) {
+                            timeData[key] = (timeData[key] || 0) + amount;
+                        }
+                    }
+                }
+            });
+
+            const sortedKeys = Object.keys(timeData).sort();
+            const labels = sortedKeys.map(key => formatTimeLabel(key, grouping));
+            const totalValues = sortedKeys.map(key => timeData[key]);
+            const yourShareValues = sortedKeys.map(key => timeData[key] * 0.25);
+
+            const ctx = document.getElementById('trend-revenue-chart').getContext('2d');
+            
+            if (trendCharts.revenue) trendCharts.revenue.destroy();
+            
+            trendCharts.revenue = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Total Paid to NYC',
+                            data: totalValues,
+                            backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                            borderColor: '#3498db',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Your 25% Share',
+                            data: yourShareValues,
+                            backgroundColor: 'rgba(39, 174, 96, 0.7)',
+                            borderColor: '#27ae60',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: true, position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': $' + context.parsed.y.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateDisqualificationChart(data, grouping) {
+            const timeData = {};
+            
+            data.forEach(row => {
+                const dateStr = row['Violation Date'] || row['Date Submitted'];
+                if (dateStr) {
+                    const key = getTimeKey(dateStr, grouping);
+                    if (key) {
+                        if (!timeData[key]) {
+                            timeData[key] = { total: 0, disqualified: 0 };
+                        }
+                        timeData[key].total++;
+                        if (row['_rowType'] === 'disqualified') {
+                            timeData[key].disqualified++;
+                        }
+                    }
+                }
+            });
+
+            const sortedKeys = Object.keys(timeData).sort();
+            const labels = sortedKeys.map(key => formatTimeLabel(key, grouping));
+            const percentages = sortedKeys.map(key => {
+                const rate = (timeData[key].disqualified / timeData[key].total) * 100;
+                return rate.toFixed(1);
+            });
+
+            const ctx = document.getElementById('trend-disqualification-chart').getContext('2d');
+            
+            if (trendCharts.disqualification) trendCharts.disqualification.destroy();
+            
+            trendCharts.disqualification = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Disqualification Rate (%)',
+                        data: percentages,
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: true, position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Rate: ' + context.parsed.y + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateCompaniesChart(data, grouping) {
+            // Get top 5 companies
+            const companyCounts = {};
+            data.forEach(row => {
+                const company = row['Company Name'] || 'Unknown';
+                companyCounts[company] = (companyCounts[company] || 0) + 1;
+            });
+            
+            const topCompanies = Object.entries(companyCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(e => e[0]);
+
+            // Track each company over time
+            const companyTimeData = {};
+            topCompanies.forEach(company => {
+                companyTimeData[company] = {};
+            });
+
+            data.forEach(row => {
+                const company = row['Company Name'] || 'Unknown';
+                if (topCompanies.includes(company)) {
+                    const dateStr = row['Violation Date'] || row['Date Submitted'];
+                    if (dateStr) {
+                        const key = getTimeKey(dateStr, grouping);
+                        if (key) {
+                            companyTimeData[company][key] = (companyTimeData[company][key] || 0) + 1;
+                        }
+                    }
+                }
+            });
+
+            const allKeys = new Set();
+            Object.values(companyTimeData).forEach(timeData => {
+                Object.keys(timeData).forEach(key => allKeys.add(key));
+            });
+            const sortedKeys = Array.from(allKeys).sort();
+            const labels = sortedKeys.map(key => formatTimeLabel(key, grouping));
+
+            const colors = ['#3498db', '#27ae60', '#f39c12', '#e74c3c', '#9b59b6'];
+            const datasets = topCompanies.map((company, i) => ({
+                label: company,
+                data: sortedKeys.map(key => companyTimeData[company][key] || 0),
+                borderColor: colors[i],
+                backgroundColor: colors[i] + '20',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4
+            }));
+
+            const ctx = document.getElementById('trend-companies-chart').getContext('2d');
+            
+            if (trendCharts.companies) trendCharts.companies.destroy();
+            
+            trendCharts.companies = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function generatePeriodComparison(data, grouping) {
+            const timeData = {};
+            
+            data.forEach(row => {
+                const dateStr = row['Violation Date'] || row['Date Submitted'];
+                if (dateStr) {
+                    const key = getTimeKey(dateStr, grouping);
+                    if (key) {
+                        if (!timeData[key]) {
+                            timeData[key] = {
+                                total: 0,
+                                paid: 0,
+                                requested: 0,
+                                disqualified: 0,
+                                revenue: 0
+                            };
+                        }
+                        timeData[key].total++;
+                        
+                        if (row['_rowType'] === 'paid') {
+                            timeData[key].paid++;
+                            const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                            if (!isNaN(amount)) {
+                                timeData[key].revenue += amount;
+                            }
+                        } else if (row['_rowType'] === 'requested') {
+                            timeData[key].requested++;
+                        } else if (row['_rowType'] === 'disqualified') {
+                            timeData[key].disqualified++;
+                        }
+                    }
+                }
+            });
+
+            const sortedKeys = Object.keys(timeData).sort();
+            const recentPeriods = sortedKeys.slice(-6); // Last 6 periods
+
+            const comparisonDiv = document.getElementById('period-comparison');
+            
+            if (recentPeriods.length === 0) {
+                comparisonDiv.innerHTML = '<p style="color: #666; font-size: 0.85em;">No data available for comparison</p>';
+                return;
+            }
+
+            let html = '<div style="overflow-x: auto;"><table style="width: 100%; font-size: 0.8em; border-collapse: collapse;">';
+            html += '<thead><tr style="background: #1e3c72; color: white;">';
+            html += '<th style="padding: 8px; text-align: left;">Period</th>';
+            html += '<th style="padding: 8px; text-align: right;">Total</th>';
+            html += '<th style="padding: 8px; text-align: right;">Paid</th>';
+            html += '<th style="padding: 8px; text-align: right;">Requested</th>';
+            html += '<th style="padding: 8px; text-align: right;">Disqualified</th>';
+            html += '<th style="padding: 8px; text-align: right;">Revenue</th>';
+            html += '<th style="padding: 8px; text-align: right;">Your Share</th>';
+            html += '</tr></thead><tbody>';
+
+            recentPeriods.forEach((key, index) => {
+                const period = timeData[key];
+                const bgColor = index % 2 === 0 ? '#f8f9fa' : 'white';
+                html += `<tr style="background: ${bgColor}; border-bottom: 1px solid #ddd;">`;
+                html += `<td style="padding: 6px; font-weight: bold;">${formatTimeLabel(key, grouping)}</td>`;
+                html += `<td style="padding: 6px; text-align: right;">${period.total}</td>`;
+                html += `<td style="padding: 6px; text-align: right; color: #27ae60;">${period.paid}</td>`;
+                html += `<td style="padding: 6px; text-align: right; color: #f39c12;">${period.requested}</td>`;
+                html += `<td style="padding: 6px; text-align: right; color: #e74c3c;">${period.disqualified}</td>`;
+                html += `<td style="padding: 6px; text-align: right;">$${period.revenue.toFixed(2)}</td>`;
+                html += `<td style="padding: 6px; text-align: right; font-weight: bold; color: #27ae60;">$${(period.revenue * 0.25).toFixed(2)}</td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            comparisonDiv.innerHTML = html;
         }
 
         function saveToStorage() {
