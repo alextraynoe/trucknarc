@@ -441,6 +441,11 @@
         .row-red {
             background: #f8d7da !important;
         }
+        
+        .row-dismissed {
+            background: #e8b5b5 !important;
+            opacity: 0.95;
+        }
 
         .row-gray {
             background: #e8d5f0 !important;
@@ -1471,6 +1476,34 @@
                     <canvas id="trend-companies-chart"></canvas>
                 </div>
             </div>
+
+            <!-- Top 10 Weeks Analysis -->
+            <div class="chart-section">
+                <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">📅 Top 10 Weeks (Sunday-Saturday)</h4>
+                <p style="color: #666; font-size: 0.85em; margin-bottom: 12px;">Busiest weeks for violations</p>
+                <div id="trend-top-weeks"></div>
+            </div>
+
+            <!-- Top 10 Days Analysis -->
+            <div class="chart-section">
+                <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">📆 Top 10 Days</h4>
+                <p style="color: #666; font-size: 0.85em; margin-bottom: 12px;">Single busiest days for violations</p>
+                <div id="trend-top-days"></div>
+            </div>
+
+            <!-- Top 10 Hours Analysis -->
+            <div class="chart-section">
+                <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">⏰ Top 10 Hours</h4>
+                <p style="color: #666; font-size: 0.85em; margin-bottom: 12px;">Most common violation times</p>
+                <div id="trend-top-hours"></div>
+            </div>
+
+            <!-- Top 25 Companies Analysis -->
+            <div class="chart-section">
+                <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">🏆 Top 25 Companies</h4>
+                <p style="color: #666; font-size: 0.85em; margin-bottom: 12px;">Companies with most submissions and their payment totals</p>
+                <div id="trend-top-25-companies"></div>
+            </div>
         </div>
 
         <!-- CHANGES Tab -->
@@ -1997,6 +2030,9 @@
             'C & J XPRESS CORP.': 'C J XPRESS',
             'C.C. RENTAL': 'CC RENTAL',
             'CC RENTAL': 'CC RENTAL',
+            'COURIER CAR RENTAL': 'CC RENTAL',
+            'COURIER CAR RENTAL INC': 'CC RENTAL',
+            'COURIER CAR RENTAL INC.': 'CC RENTAL',
             'CDM TRUCKING CORP': 'CDM TRUCKING',
             'CENTURY ELEVATOR': 'CENTURY ELEVATOR',
             'CHAMPION ELEVATOR': 'CHAMPION ELEVATOR',
@@ -2021,9 +2057,6 @@
             'CORNERSTONE CONTRACTING INC': 'CORNERSTONE CONTRACTING',
             'CORNERSTONE CONTRACTING, INC': 'CORNERSTONE CONTRACTING',
             'CORPORATE COFFEE SYSTEMS': 'CORPORATE COFFEE SYSTEMS',
-            'COURIER CAR RENTAL': 'COURIER CAR RENTAL',
-            'COURIER CAR RENTAL INC': 'COURIER CAR RENTAL',
-            'COURIER CAR RENTAL INC.': 'COURIER CAR RENTAL',
             'CREATIVE GRAIN': 'CREATIVE GRAIN',
             'CREATIVE GRAIN LLC': 'CREATIVE GRAIN',
             'CROSS FIRE & SECURITY': 'CROSS FIRE SECURITY',
@@ -2178,8 +2211,8 @@
                 return companyNameMapping[normalized];
             }
             
-            // Return original if no normalization needed
-            return companyName;
+            // Return the normalized (uppercase) version for consistency
+            return normalized;
         }
 
         function formatDate(dateStr) {
@@ -2614,6 +2647,22 @@
                 const sessionDate = new Date(session.refreshTime);
                 const isRecent = sessionIndex === 0;
 
+                // Group changes by summons number and timestamp
+                const groupedChanges = {};
+                session.changes.forEach(change => {
+                    const key = `${change.summonsNumber}_${change.timestamp}`;
+                    if (!groupedChanges[key]) {
+                        groupedChanges[key] = {
+                            summonsNumber: change.summonsNumber,
+                            companyName: change.companyName,
+                            dataset: change.dataset,
+                            timestamp: change.timestamp,
+                            changes: []
+                        };
+                    }
+                    groupedChanges[key].changes.push(change);
+                });
+
                 html += `
                     <div style="border-left: 3px solid ${isRecent ? '#27ae60' : '#3498db'}; padding-left: 15px; margin-bottom: 25px; position: relative;">
                         <div style="position: absolute; left: -8px; top: 0; width: 13px; height: 13px; border-radius: 50%; background: ${isRecent ? '#27ae60' : '#3498db'}; border: 3px solid white;"></div>
@@ -2622,12 +2671,17 @@
                                 📅 ${sessionDate.toLocaleString()}
                             </div>
                             <div style="color: #666; font-size: 0.85em; margin-top: 4px;">
-                                ${session.changes.length} change${session.changes.length !== 1 ? 's' : ''} detected
+                                ${Object.keys(groupedChanges).length} summons${Object.keys(groupedChanges).length !== 1 ? 'es' : ''} with changes
                             </div>
                         </div>
                 `;
 
-                session.changes.forEach(change => {
+                Object.values(groupedChanges).forEach(group => {
+                    // Determine the primary type and color
+                    const hasNew = group.changes.some(c => c.type === 'new');
+                    const hasStatus = group.changes.some(c => c.type === 'status');
+                    const hasPayment = group.changes.some(c => c.type === 'payment');
+                    
                     const typeIcons = {
                         'new': '✨',
                         'status': '🔄',
@@ -2638,8 +2692,14 @@
                         'status': '#3498db',
                         'payment': '#f39c12'
                     };
-                    const typeIcon = typeIcons[change.type] || '📌';
-                    const typeColor = typeColors[change.type] || '#95a5a6';
+                    
+                    // Pick primary type/color based on priority
+                    let primaryType = 'status';
+                    if (hasNew) primaryType = 'new';
+                    else if (hasPayment) primaryType = 'payment';
+                    
+                    const typeIcon = typeIcons[primaryType];
+                    const typeColor = typeColors[primaryType];
 
                     html += `
                         <div style="background: white; padding: 12px; border-radius: 4px; margin-bottom: 8px; border-left: 3px solid ${typeColor}; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
@@ -2647,34 +2707,61 @@
                                 <div style="font-size: 1.3em; line-height: 1;">${typeIcon}</div>
                                 <div style="flex: 1;">
                                     <div style="font-weight: bold; color: #2c3e50; font-size: 0.85em; margin-bottom: 4px;">
-                                        ${change.description}
+                                        ${group.changes.length > 1 ? 'Multiple changes' : group.changes[0].description}
                                     </div>
                                     <div style="font-size: 0.8em; color: #666; margin-bottom: 6px;">
-                                        <strong>Summons:</strong> ${change.summonsNumber} | 
-                                        <strong>Company:</strong> ${change.companyName} | 
-                                        <strong>Dataset:</strong> ${change.dataset}
+                                        <strong>Summons:</strong> ${group.summonsNumber} | 
+                                        <strong>Company:</strong> ${group.companyName} | 
+                                        <strong>Dataset:</strong> ${group.dataset}
                                     </div>
                     `;
 
-                    if (change.details) {
-                        if (change.details.from !== undefined && change.details.to !== undefined) {
-                            html += `
-                                <div style="font-size: 0.8em; padding: 6px; background: #f8f9fa; border-radius: 3px;">
-                                    <span style="color: #e74c3c;">${change.details.from}</span>
-                                    <span style="margin: 0 6px;">→</span>
-                                    <span style="color: #27ae60; font-weight: bold;">${change.details.to}</span>
-                            `;
-                            if (change.details.difference) {
-                                html += ` <span style="margin-left: 8px; color: #666;">(${change.details.difference})</span>`;
+                    // If multiple changes, show all details
+                    if (group.changes.length > 1) {
+                        html += '<div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 3px; font-size: 0.8em;">';
+                        group.changes.forEach((change, idx) => {
+                            if (idx > 0) html += '<div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #dee2e6;"></div>';
+                            html += `<div><strong>${change.description}:</strong> `;
+                            
+                            if (change.details) {
+                                if (change.details.from !== undefined && change.details.to !== undefined) {
+                                    html += `<span style="color: #e74c3c;">${change.details.from}</span>`;
+                                    html += ` → `;
+                                    html += `<span style="color: #27ae60; font-weight: bold;">${change.details.to}</span>`;
+                                    if (change.details.difference) {
+                                        html += ` <span style="color: #666;">(${change.details.difference})</span>`;
+                                    }
+                                } else if (change.details.violationDate) {
+                                    html += `${change.details.violationDate}`;
+                                    if (change.details.status) html += ` | Status: ${change.details.status}`;
+                                }
                             }
-                            html += `</div>`;
-                        } else if (change.details.violationDate) {
-                            html += `
-                                <div style="font-size: 0.8em; color: #666;">
-                                    <strong>Violation Date:</strong> ${change.details.violationDate}
-                                    ${change.details.status ? ` | <strong>Status:</strong> ${change.details.status}` : ''}
-                                </div>
-                            `;
+                            html += '</div>';
+                        });
+                        html += '</div>';
+                    } else {
+                        // Single change - show details inline
+                        const change = group.changes[0];
+                        if (change.details) {
+                            if (change.details.from !== undefined && change.details.to !== undefined) {
+                                html += `
+                                    <div style="font-size: 0.8em; padding: 6px; background: #f8f9fa; border-radius: 3px;">
+                                        <span style="color: #e74c3c;">${change.details.from}</span>
+                                        <span style="margin: 0 6px;">→</span>
+                                        <span style="color: #27ae60; font-weight: bold;">${change.details.to}</span>
+                                `;
+                                if (change.details.difference) {
+                                    html += ` <span style="margin-left: 8px; color: #666;">(${change.details.difference})</span>`;
+                                }
+                                html += `</div>`;
+                            } else if (change.details.violationDate) {
+                                html += `
+                                    <div style="font-size: 0.8em; color: #666;">
+                                        <strong>Violation Date:</strong> ${change.details.violationDate}
+                                        ${change.details.status ? ` | <strong>Status:</strong> ${change.details.status}` : ''}
+                                    </div>
+                                `;
+                            }
                         }
                     }
 
@@ -2872,6 +2959,11 @@
             const merged = master.map(row => {
                 const summonsNum = (row['Summons Number'] || '').trim();
                 const newRow = { ...row };
+                
+                // Normalize company name for consistent grouping
+                if (newRow['Company Name']) {
+                    newRow['Company Name'] = normalizeCompanyName(newRow['Company Name']);
+                }
 
                 if (!newRow['Paid Amount']) newRow['Paid Amount'] = '';
                 if (!newRow['Hearing Status']) newRow['Hearing Status'] = '';
@@ -2912,10 +3004,10 @@
                     newRow['Payment Status'] = 'REQUESTED';
                 }
                 
-                // Disqualified overrides everything
+                // Disqualified overrides everything (including dismissed)
                 const hearingResult = (row['Hearing Result'] || newRow['Hearing Result'] || '').toLowerCase();
                 if (status.includes('disqualified') || hearingResult.includes('dismissed')) {
-                    newRow['_rowType'] = 'disqualified';
+                    newRow['_rowType'] = hearingResult.includes('dismissed') ? 'dismissed' : 'disqualified';
                 }
 
                 return newRow;
@@ -3024,7 +3116,7 @@
             const filteredData = data.filter(row => {
                 if (row['_rowType'] === 'paid' && !showPaid) return false;
                 if (row['_rowType'] === 'requested' && !showRequested) return false;
-                if (row['_rowType'] === 'disqualified' && !showDisqualified) return false;
+                if ((row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed') && !showDisqualified) return false;
                 
                 const paymentStatus = (row['Payment Status'] || '').trim();
                 if (!showUnpaid && !paymentStatus && row['_rowType'] !== 'submitted') return false;
@@ -3074,6 +3166,7 @@
                 let rowClass = '';
                 if (row['_rowType'] === 'paid') rowClass = 'row-green';
                 else if (row['_rowType'] === 'requested') rowClass = 'row-yellow';
+                else if (row['_rowType'] === 'dismissed') rowClass = 'row-dismissed'; // Darker red for dismissed
                 else if (row['_rowType'] === 'disqualified') rowClass = 'row-red';
                 else if (row['_rowType'] === 'submitted') rowClass = 'row-gray';
 
@@ -3165,8 +3258,16 @@
 
             const paidCount = data.filter(row => row['_rowType'] === 'paid').length;
             const requestedCount = data.filter(row => row['_rowType'] === 'requested').length;
-            const disqualifiedCount = data.filter(row => row['_rowType'] === 'disqualified').length;
+            const disqualifiedCount = data.filter(row => row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed').length;
             const totalCount = data.length;
+
+            // Data Received: has violation date AND not disqualified/dismissed
+            const dataReceivedCount = data.filter(row => {
+                const hasViolationDate = row['Violation Date'] && row['Violation Date'].trim() !== '';
+                const notDisqualified = row['_rowType'] !== 'disqualified' && row['_rowType'] !== 'dismissed';
+                return hasViolationDate && notDisqualified;
+            }).length;
+            const dataReceivedPercentage = totalCount > 0 ? ((dataReceivedCount / totalCount) * 100).toFixed(1) : 0;
 
             const reviewedCount = data.filter(row => {
                 const status = (row['Status'] || '').toLowerCase();
@@ -3178,21 +3279,51 @@
                 return status !== 'submitted' && status !== '';
             }).length;
             const disqualifiedPercentage = nonSubmittedCount > 0 ? ((disqualifiedCount / nonSubmittedCount) * 100).toFixed(1) : 0;
+            
+            // Calculate reviewed percentage
+            const reviewedPercentage = totalCount > 0 ? ((reviewedCount / totalCount) * 100).toFixed(1) : 0;
 
-            statusBar.innerHTML = `
-                <div class="status-item">
-                    <span class="status-badge badge-total">Total: ${totalCount}</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-badge badge-green">Paid: ${paidCount}</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-badge badge-yellow">Requested: ${requestedCount}</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-badge badge-red">Disq: ${disqualifiedCount} (${disqualifiedPercentage}%)</span>
-                </div>
-            `;
+            // Special handling for AT NYC dataset
+            if (tab === 'at-nyc') {
+                statusBar.innerHTML = `
+                    <div class="status-item">
+                        <span class="status-badge badge-total">Total: ${totalCount}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-badge badge-green">Paid: ${paidCount}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-badge badge-yellow">Requested: ${requestedCount}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-badge badge-red">Disq: ${disqualifiedCount} (${disqualifiedPercentage}%)</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-badge" style="background: #3498db; color: white;">Data Received: ${dataReceivedCount} (${dataReceivedPercentage}%)</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-badge" style="background: #9b59b6; color: white;">Reviewed: ${reviewedCount} (${reviewedPercentage}%)</span>
+                    </div>
+                `;
+            } else {
+                statusBar.innerHTML = `
+                    <div class="status-item">
+                        <span class="status-badge badge-total">Total: ${totalCount}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-badge badge-green">Paid: ${paidCount}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-badge badge-yellow">Requested: ${requestedCount}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-badge badge-red">Disq: ${disqualifiedCount} (${disqualifiedPercentage}%)</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-badge" style="background: #3498db; color: white;">Data Received: ${dataReceivedCount} (${dataReceivedPercentage}%)</span>
+                    </div>
+                `;
+            }
         }
 
         function updateTotalsBar(tab, filteredData) {
@@ -3322,7 +3453,8 @@
                 const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
                 if (!isNaN(amount) && amount > 0) {
                     totalPotential += amount;
-                    if (row['_rowType'] === 'paid') {
+                    // Count both paid and requested as collected
+                    if (row['_rowType'] === 'paid' || row['_rowType'] === 'requested') {
                         totalCollected += amount;
                     }
                 }
@@ -3332,19 +3464,19 @@
             const uncollected = yourPotential - yourCollected;
             facts.push({
                 title: '💰 Total Earnings Potential',
-                description: `You've collected $${yourCollected.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} out of a potential $${yourPotential.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} - that's $${uncollected.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} still outstanding!`
+                description: `You've collected/requested $${yourCollected.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} out of a potential $${yourPotential.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} - that's $${uncollected.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} still outstanding!`
             });
 
             // 2. Success Rate
-            const paidCount = allData.filter(row => row['_rowType'] === 'paid').length;
-            const successRate = ((paidCount / allData.length) * 100).toFixed(1);
+            const paidAndRequestedCount = allData.filter(row => row['_rowType'] === 'paid' || row['_rowType'] === 'requested').length;
+            const successRate = ((paidAndRequestedCount / allData.length) * 100).toFixed(1);
             facts.push({
                 title: '📈 Overall Success Rate',
-                description: `${successRate}% success rate - ${paidCount} out of ${allData.length.toLocaleString()} summonses resulted in payment`
+                description: `${successRate}% success rate - ${paidAndRequestedCount} out of ${allData.length.toLocaleString()} summonses resulted in payment or request`
             });
 
             // 3. Average Payout
-            const avgPayout = paidCount > 0 ? yourCollected / paidCount : 0;
+            const avgPayout = paidAndRequestedCount > 0 ? yourCollected / paidAndRequestedCount : 0;
             facts.push({
                 title: '💵 Average Payout Per Case',
                 description: `Each successful summons nets you an average of $${avgPayout.toFixed(2)}`
@@ -3793,28 +3925,6 @@
 
         // ===== ADVANCED INSIGHTS FUNCTIONS =====
         
-        // Normalize company names to group variations together
-        function normalizeCompanyName(companyName) {
-            if (!companyName) return 'Unknown';
-            
-            const normalized = companyName.toUpperCase().trim();
-            
-            // Con Edison variations
-            if (normalized.includes('CON ED') || 
-                normalized.includes('CONED') || 
-                normalized.includes('CONSOLIDATED EDISON') ||
-                normalized.includes('CON EDISON') ||
-                normalized.includes('CONSOL EDISON') ||
-                normalized.includes('CONSOLIDATEDEDISON') ||
-                normalized === 'CON ED' ||
-                normalized === 'CONED') {
-                return 'Con Edison (Consolidated)';
-            }
-            
-            // Return original if no normalization needed
-            return companyName;
-        }
-        
         // Get filtered data for insights based on selected checkboxes
         function getFilteredInsightsData() {
             const cutoffDate = new Date('2024-10-01');
@@ -3955,10 +4065,11 @@
                 if (row['_rowType'] === 'paid') boroughStats[borough].paid++;
             });
 
-            // Score all unpaid cases (exclude requested since they're already in pipeline)
+            // Score all unpaid cases (exclude requested since they're already in pipeline and effectively paid)
             const unpaidCases = allData.filter(row => {
-                // Only include truly unpaid cases (not requested, not paid, not disqualified)
-                if (row['_rowType'] === 'requested' || row['_rowType'] === 'paid' || row['_rowType'] === 'disqualified') {
+                // Only include truly unpaid cases (not requested, not paid, not disqualified/dismissed)
+                if (row['_rowType'] === 'requested' || row['_rowType'] === 'paid' || 
+                    row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed') {
                     return false;
                 }
                 // Must have a paid amount to predict
@@ -4822,17 +4933,18 @@
             const container = document.getElementById('insight-roi');
             const allData = getFilteredInsightsData();
 
-            const paidCases = allData.filter(row => row['_rowType'] === 'paid');
-            const totalRevenue = paidCases.reduce((sum, row) => {
+            // Count requested as effectively paid for revenue calculations
+            const paidAndRequestedCases = allData.filter(row => row['_rowType'] === 'paid' || row['_rowType'] === 'requested');
+            const totalRevenue = paidAndRequestedCases.reduce((sum, row) => {
                 const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
                 return sum + (isNaN(amount) ? 0 : amount * 0.25);
             }, 0);
 
-            const avgRevenuePerCase = paidCases.length > 0 ? totalRevenue / paidCases.length : 0;
+            const avgRevenuePerCase = paidAndRequestedCases.length > 0 ? totalRevenue / paidAndRequestedCases.length : 0;
 
             // Break down by case characteristics
-            const withHearing = paidCases.filter(row => row['Hearing Result'] && row['Hearing Result'].trim() !== '');
-            const withoutHearing = paidCases.filter(row => !row['Hearing Result'] || row['Hearing Result'].trim() === '');
+            const withHearing = paidAndRequestedCases.filter(row => row['Hearing Result'] && row['Hearing Result'].trim() !== '');
+            const withoutHearing = paidAndRequestedCases.filter(row => !row['Hearing Result'] || row['Hearing Result'].trim() === '');
 
             const hearingRevenue = withHearing.reduce((sum, row) => {
                 const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
@@ -4854,7 +4966,7 @@
                 'Over $1000': { count: 0, revenue: 0 }
             };
 
-            paidCases.forEach(row => {
+            paidAndRequestedCases.forEach(row => {
                 const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
                 const yourCut = amount * 0.25;
                 
@@ -4875,7 +4987,7 @@
             html += `<div style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">`;
             html += '<div style="font-size: 0.9em; opacity: 0.9;">Total Revenue (Your Share)</div>';
             html += `<div style="font-size: 2em; font-weight: bold; margin: 10px 0;">$${totalRevenue.toFixed(2)}</div>`;
-            html += `<div style="font-size: 0.85em;">${paidCases.length} paid cases</div>`;
+            html += `<div style="font-size: 0.85em;">${paidAndRequestedCases.length} paid/requested cases</div>`;
             html += '</div>';
 
             html += `<div style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">`;
@@ -4937,7 +5049,7 @@
             // Filter for all Con Ed related cases using normalization
             const conEdData = allData.filter(row => {
                 const normalizedName = normalizeCompanyName(row['Company Name']);
-                return normalizedName === 'Con Edison (Consolidated)';
+                return normalizedName === 'CON EDISON';
             });
 
             if (conEdData.length === 0) {
@@ -6031,6 +6143,12 @@
             generateDisqualificationChart(data, grouping);
             generateCompaniesChart(data, grouping);
             generatePeriodComparison(data, grouping);
+            
+            // Generate new trend analyses
+            generateTopWeeks(data);
+            generateTopDays(data);
+            generateTopHours(data);
+            generateTop25Companies(data);
         }
 
         function generateVolumeChart(data, grouping) {
@@ -6191,7 +6309,8 @@
             
             data.forEach(row => {
                 const dateStr = row['Violation Date'] || row['Date Submitted'];
-                if (dateStr && row['_rowType'] === 'paid') {
+                // Count both paid and requested as revenue
+                if (dateStr && (row['_rowType'] === 'paid' || row['_rowType'] === 'requested')) {
                     const key = getTimeKey(dateStr, grouping);
                     if (key) {
                         const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
@@ -6217,7 +6336,7 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'Total Paid to NYC',
+                            label: 'Total Paid/Requested to NYC',
                             data: totalValues,
                             backgroundColor: 'rgba(52, 152, 219, 0.7)',
                             borderColor: '#3498db',
@@ -6476,6 +6595,308 @@
 
             html += '</tbody></table></div>';
             comparisonDiv.innerHTML = html;
+        }
+
+        // Function to get week start date (Sunday) for a given date
+        function getWeekStart(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = d.getDate() - day;
+            return new Date(d.setDate(diff));
+        }
+
+        // Generate Top 10 Weeks
+        function generateTopWeeks(data) {
+            const weekData = {};
+            
+            data.forEach(row => {
+                const dateStr = row['Violation Date'];
+                if (dateStr) {
+                    const date = new Date(dateStr);
+                    if (!isNaN(date.getTime())) {
+                        const weekStart = getWeekStart(date);
+                        const weekKey = weekStart.toISOString().split('T')[0];
+                        
+                        if (!weekData[weekKey]) {
+                            weekData[weekKey] = {
+                                count: 0,
+                                startDate: weekStart,
+                                endDate: new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000)
+                            };
+                        }
+                        weekData[weekKey].count++;
+                    }
+                }
+            });
+
+            const topWeeks = Object.entries(weekData)
+                .sort((a, b) => b[1].count - a[1].count)
+                .slice(0, 10);
+
+            const container = document.getElementById('trend-top-weeks');
+            let html = '<div style="overflow-x: auto;"><table style="width: 100%; font-size: 0.85em; border-collapse: collapse;">';
+            html += '<thead><tr style="background: #1e3c72; color: white;">';
+            html += '<th style="padding: 8px;">Rank</th>';
+            html += '<th style="padding: 8px;">Week</th>';
+            html += '<th style="padding: 8px;">Date Range</th>';
+            html += '<th style="padding: 8px; text-align: right;">Violations</th>';
+            html += '</tr></thead><tbody>';
+
+            topWeeks.forEach(([weekKey, data], index) => {
+                const bgColor = index % 2 === 0 ? '#f8f9fa' : 'white';
+                const startStr = data.startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const endStr = data.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                
+                html += `<tr style="background: ${bgColor};">`;
+                html += `<td style="padding: 6px; text-align: center; font-weight: bold;">#${index + 1}</td>`;
+                html += `<td style="padding: 6px;">Week of ${startStr}</td>`;
+                html += `<td style="padding: 6px; font-size: 0.9em; color: #666;">${startStr} - ${endStr}</td>`;
+                html += `<td style="padding: 6px; text-align: right; font-weight: bold; color: #1e3c72;">${data.count}</td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        // Generate Top 10 Days
+        function generateTopDays(data) {
+            const dayData = {};
+            
+            data.forEach(row => {
+                const dateStr = row['Violation Date'];
+                if (dateStr) {
+                    const date = new Date(dateStr);
+                    if (!isNaN(date.getTime())) {
+                        const dayKey = date.toISOString().split('T')[0];
+                        dayData[dayKey] = (dayData[dayKey] || 0) + 1;
+                    }
+                }
+            });
+
+            const topDays = Object.entries(dayData)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            const container = document.getElementById('trend-top-days');
+            let html = '<div style="overflow-x: auto;"><table style="width: 100%; font-size: 0.85em; border-collapse: collapse;">';
+            html += '<thead><tr style="background: #1e3c72; color: white;">';
+            html += '<th style="padding: 8px;">Rank</th>';
+            html += '<th style="padding: 8px;">Date</th>';
+            html += '<th style="padding: 8px;">Day of Week</th>';
+            html += '<th style="padding: 8px; text-align: right;">Violations</th>';
+            html += '</tr></thead><tbody>';
+
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            
+            topDays.forEach(([dayKey, count], index) => {
+                const date = new Date(dayKey);
+                const dayOfWeek = dayNames[date.getDay()];
+                const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                const bgColor = index % 2 === 0 ? '#f8f9fa' : 'white';
+                
+                html += `<tr style="background: ${bgColor};">`;
+                html += `<td style="padding: 6px; text-align: center; font-weight: bold;">#${index + 1}</td>`;
+                html += `<td style="padding: 6px;">${dateStr}</td>`;
+                html += `<td style="padding: 6px; color: #666;">${dayOfWeek}</td>`;
+                html += `<td style="padding: 6px; text-align: right; font-weight: bold; color: #1e3c72;">${count}</td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        // Generate Top 10 Hours (Specific hour-long blocks)
+        function generateTopHours(data) {
+            // Collect all violations with exact timestamps
+            const violationTimestamps = [];
+            
+            data.forEach(row => {
+                const dateStr = row['Violation Date'];
+                const timeStr = row['Violation Time'];
+                if (dateStr && timeStr) {
+                    const date = new Date(dateStr);
+                    if (!isNaN(date.getTime()) && timeStr.includes(':')) {
+                        const [hour, minute] = timeStr.split(':').map(n => parseInt(n));
+                        if (!isNaN(hour) && !isNaN(minute)) {
+                            date.setHours(hour, minute, 0, 0);
+                            violationTimestamps.push({
+                                timestamp: date.getTime(),
+                                dateStr: dateStr,
+                                timeStr: timeStr,
+                                row: row
+                            });
+                        }
+                    }
+                }
+            });
+            
+            // Sort by timestamp
+            violationTimestamps.sort((a, b) => a.timestamp - b.timestamp);
+            
+            // Find hour-long blocks with most violations
+            const hourBlocks = [];
+            
+            for (let i = 0; i < violationTimestamps.length; i++) {
+                const startTime = violationTimestamps[i].timestamp;
+                const endTime = startTime + (60 * 60 * 1000); // 1 hour later
+                
+                // Count violations in this hour block
+                let count = 0;
+                let j = i;
+                while (j < violationTimestamps.length && violationTimestamps[j].timestamp < endTime) {
+                    count++;
+                    j++;
+                }
+                
+                if (count > 1) { // Only consider blocks with multiple violations
+                    const startDate = new Date(startTime);
+                    const endDate = new Date(endTime);
+                    
+                    hourBlocks.push({
+                        startTime: startTime,
+                        endTime: endTime,
+                        startDateStr: startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        startTimeStr: startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+                        endTimeStr: endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+                        count: count,
+                        firstViolation: violationTimestamps[i],
+                        lastViolation: violationTimestamps[Math.min(i + count - 1, j - 1)]
+                    });
+                }
+            }
+            
+            // Remove overlapping blocks (keep the one with higher count)
+            const uniqueBlocks = [];
+            hourBlocks.forEach(block => {
+                const overlapping = uniqueBlocks.find(existing => 
+                    (block.startTime >= existing.startTime && block.startTime < existing.endTime) ||
+                    (existing.startTime >= block.startTime && existing.startTime < block.endTime)
+                );
+                
+                if (!overlapping) {
+                    uniqueBlocks.push(block);
+                } else if (block.count > overlapping.count) {
+                    const index = uniqueBlocks.indexOf(overlapping);
+                    uniqueBlocks[index] = block;
+                }
+            });
+            
+            // Sort by count and take top 10
+            const topBlocks = uniqueBlocks
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 10);
+
+            const container = document.getElementById('trend-top-hours');
+            
+            if (topBlocks.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Not enough data to identify specific hour-long violation clusters.</p>';
+                return;
+            }
+            
+            let html = '<div style="overflow-x: auto;"><table style="width: 100%; font-size: 0.85em; border-collapse: collapse;">';
+            html += '<thead><tr style="background: #1e3c72; color: white;">';
+            html += '<th style="padding: 8px;">Rank</th>';
+            html += '<th style="padding: 8px;">Date</th>';
+            html += '<th style="padding: 8px;">Hour Block</th>';
+            html += '<th style="padding: 8px; text-align: right;">Violations</th>';
+            html += '</tr></thead><tbody>';
+
+            topBlocks.forEach((block, index) => {
+                const bgColor = index % 2 === 0 ? '#f8f9fa' : 'white';
+                
+                html += `<tr style="background: ${bgColor};">`;
+                html += `<td style="padding: 6px; text-align: center; font-weight: bold;">#${index + 1}</td>`;
+                html += `<td style="padding: 6px;">${block.startDateStr}</td>`;
+                html += `<td style="padding: 6px; font-weight: bold;">${block.startTimeStr} - ${block.endTimeStr}</td>`;
+                html += `<td style="padding: 6px; text-align: right; font-weight: bold; color: #1e3c72;">${block.count}</td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        // Generate Top 25 Companies
+        function generateTop25Companies(data) {
+            const companyData = {};
+            
+            data.forEach(row => {
+                const company = normalizeCompanyName(row['Company Name'] || 'Unknown');
+                
+                if (!companyData[company]) {
+                    companyData[company] = {
+                        submissions: 0,
+                        totalPaid: 0,
+                        paidCount: 0
+                    };
+                }
+                
+                companyData[company].submissions++;
+                
+                if (row['_rowType'] === 'paid') {
+                    companyData[company].paidCount++;
+                    const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                    if (!isNaN(amount)) {
+                        companyData[company].totalPaid += amount;
+                    }
+                }
+            });
+
+            const top25 = Object.entries(companyData)
+                .sort((a, b) => b[1].submissions - a[1].submissions)
+                .slice(0, 25);
+
+            const container = document.getElementById('trend-top-25-companies');
+            let html = '<div style="overflow-x: auto;"><table style="width: 100%; font-size: 0.85em; border-collapse: collapse;">';
+            html += '<thead><tr style="background: #1e3c72; color: white;">';
+            html += '<th style="padding: 8px;">Rank</th>';
+            html += '<th style="padding: 8px;">Company</th>';
+            html += '<th style="padding: 8px; text-align: right;">Submissions</th>';
+            html += '<th style="padding: 8px; text-align: right;">Paid Count</th>';
+            html += '<th style="padding: 8px; text-align: right;">NYC Paid Total</th>';
+            html += '<th style="padding: 8px; text-align: right;">Your 25%</th>';
+            html += '<th style="padding: 8px; text-align: right;">Pay Rate</th>';
+            html += '</tr></thead><tbody>';
+
+            let totalYourShare = 0;
+            
+            top25.forEach(([company, data], index) => {
+                const bgColor = index % 2 === 0 ? '#f8f9fa' : 'white';
+                const yourShare = data.totalPaid * 0.25;
+                totalYourShare += yourShare;
+                const payRate = data.submissions > 0 ? ((data.paidCount / data.submissions) * 100).toFixed(1) : '0.0';
+                const rateColor = parseFloat(payRate) >= 60 ? '#27ae60' : parseFloat(payRate) >= 40 ? '#f39c12' : '#e74c3c';
+                
+                html += `<tr style="background: ${bgColor};">`;
+                html += `<td style="padding: 6px; text-align: center; font-weight: bold;">#${index + 1}</td>`;
+                html += `<td style="padding: 6px;">${company}</td>`;
+                html += `<td style="padding: 6px; text-align: right; font-weight: bold;">${data.submissions}</td>`;
+                html += `<td style="padding: 6px; text-align: right;">${data.paidCount}</td>`;
+                html += `<td style="padding: 6px; text-align: right;">$${data.totalPaid.toFixed(2)}</td>`;
+                html += `<td style="padding: 6px; text-align: right; font-weight: bold; color: #27ae60;">$${yourShare.toFixed(2)}</td>`;
+                html += `<td style="padding: 6px; text-align: right; font-weight: bold; color: ${rateColor};">${payRate}%</td>`;
+                html += '</tr>';
+            });
+
+            // Add total row
+            const totalSubmissions = top25.reduce((sum, [, data]) => sum + data.submissions, 0);
+            const totalPaidCount = top25.reduce((sum, [, data]) => sum + data.paidCount, 0);
+            const totalNYCPaid = top25.reduce((sum, [, data]) => sum + data.totalPaid, 0);
+            const avgPayRate = totalSubmissions > 0 ? ((totalPaidCount / totalSubmissions) * 100).toFixed(1) : '0.0';
+            
+            html += `<tr style="background: #f0f0f0; font-weight: bold;">`;
+            html += `<td colspan="2" style="padding: 8px;">TOTAL (Top 25)</td>`;
+            html += `<td style="padding: 8px; text-align: right;">${totalSubmissions}</td>`;
+            html += `<td style="padding: 8px; text-align: right;">${totalPaidCount}</td>`;
+            html += `<td style="padding: 8px; text-align: right;">$${totalNYCPaid.toFixed(2)}</td>`;
+            html += `<td style="padding: 8px; text-align: right; color: #27ae60;">$${totalYourShare.toFixed(2)}</td>`;
+            html += `<td style="padding: 8px; text-align: right;">${avgPayRate}%</td>`;
+            html += '</tr>';
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
         }
 
         function exportMismatchesPDF() {
