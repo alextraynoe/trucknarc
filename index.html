@@ -443,8 +443,8 @@
         }
         
         .row-dismissed {
-            background: #e8b5b5 !important;
-            opacity: 0.95;
+            background: #d9534f !important;
+            color: white;
         }
 
         .row-gray {
@@ -1063,6 +1063,7 @@
                 <button class="btn btn-primary" onclick="loadAllData()">📄 Load All</button>
                 <button class="btn" onclick="refreshData('at')">🔄 Refresh</button>
                 <button class="btn btn-danger" onclick="clearData('at')">🗑️ Clear</button>
+                <div id="at-timestamps" style="display: inline-block; padding: 0 15px; font-size: 0.7em; color: #666; white-space: nowrap;"></div>
                 <div class="filter-item" style="margin-left: auto;">
                     <input type="checkbox" id="at-show-extra" onchange="toggleExtraColumns('at')">
                     <label for="at-show-extra">Extra Data</label>
@@ -1152,6 +1153,7 @@
                 <button class="btn btn-primary" onclick="loadAllData()">📄 Load All</button>
                 <button class="btn" onclick="refreshData('at-nyc')">🔄 Refresh</button>
                 <button class="btn btn-danger" onclick="clearData('at-nyc')">🗑️ Clear</button>
+                <div id="at-nyc-timestamps" style="display: inline-block; padding: 0 15px; font-size: 0.7em; color: #666; white-space: nowrap;"></div>
                 <div class="filter-item" style="margin-left: auto;">
                     <input type="checkbox" id="at-nyc-show-extra" onchange="toggleExtraColumns('at-nyc')">
                     <label for="at-nyc-show-extra">Extra Data</label>
@@ -1241,6 +1243,7 @@
                 <button class="btn btn-primary" onclick="loadAllData()">📄 Load All</button>
                 <button class="btn" onclick="refreshData('mbt')">🔄 Refresh</button>
                 <button class="btn btn-danger" onclick="clearData('mbt')">🗑️ Clear</button>
+                <div id="mbt-timestamps" style="display: inline-block; padding: 0 15px; font-size: 0.7em; color: #666; white-space: nowrap;"></div>
                 <div class="filter-item" style="margin-left: auto;">
                     <input type="checkbox" id="mbt-show-extra" onchange="toggleExtraColumns('mbt')">
                     <label for="mbt-show-extra">Extra Data</label>
@@ -1604,13 +1607,13 @@
                 <button class="btn btn-success" onclick="exportInsightsReport()">📥 Export Report</button>
             </div>
 
-            <!-- 1. Payment Probability Predictor -->
+            <!-- 1. Top Priority Cases -->
             <div style="background: white; padding: 20px; border-radius: 8px; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 <h3 style="color: #667eea; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.5em;">🔮</span>
-                    <span>1. Payment Probability Predictor</span>
+                    <span style="font-size: 1.5em;">🎯</span>
+                    <span>1. Top Priority Cases to Chase Now</span>
                 </h3>
-                <p style="color: #666; margin-bottom: 15px;">Machine learning prediction of which unpaid cases are most likely to result in payment</p>
+                <p style="color: #666; margin-bottom: 15px;">Actionable list of high-value unpaid cases ranked by priority for maximum ROI</p>
                 <div id="insight-payment-predictor"></div>
             </div>
 
@@ -1684,13 +1687,13 @@
                 <div id="insight-seasonal"></div>
             </div>
 
-            <!-- 9. Company Behavior Change Detector -->
+            <!-- 9. Revenue Maximization Opportunities -->
             <div style="background: white; padding: 20px; border-radius: 8px; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 <h3 style="color: #667eea; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.5em;">🚨</span>
-                    <span>9. Company Behavior Change Detector</span>
+                    <span style="font-size: 1.5em;">💰</span>
+                    <span>9. Revenue Maximization Opportunities</span>
                 </h3>
-                <p style="color: #666; margin-bottom: 15px;">Flag companies whose payment patterns have changed</p>
+                <p style="color: #666; margin-bottom: 15px;">Identify and quantify your biggest revenue opportunities to maximize earnings</p>
                 <div id="insight-behavior-change"></div>
             </div>
 
@@ -3004,10 +3007,12 @@
                     newRow['Payment Status'] = 'REQUESTED';
                 }
                 
-                // Disqualified overrides everything (including dismissed)
+                // Check for dismissed or disqualified status - dismissed takes priority
                 const hearingResult = (row['Hearing Result'] || newRow['Hearing Result'] || '').toLowerCase();
-                if (status.includes('disqualified') || hearingResult.includes('dismissed')) {
-                    newRow['_rowType'] = hearingResult.includes('dismissed') ? 'dismissed' : 'disqualified';
+                if (hearingResult.includes('dismissed')) {
+                    newRow['_rowType'] = 'dismissed';
+                } else if (status.includes('disqualified')) {
+                    newRow['_rowType'] = 'disqualified';
                 }
 
                 return newRow;
@@ -3052,6 +3057,15 @@
                                 enrichedRow[displayName] = nycRow[apiField];
                             }
                         });
+
+                        // Re-check dismissed/disqualified status after enrichment since Hearing Result may have changed
+                        const hearingResult = (enrichedRow['Hearing Result'] || '').toLowerCase();
+                        const status = (enrichedRow['Status'] || '').toLowerCase();
+                        if (hearingResult.includes('dismissed')) {
+                            enrichedRow['_rowType'] = 'dismissed';
+                        } else if (status.includes('disqualified')) {
+                            enrichedRow['_rowType'] = 'disqualified';
+                        }
 
                         return enrichedRow;
                     }
@@ -3261,13 +3275,19 @@
             const disqualifiedCount = data.filter(row => row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed').length;
             const totalCount = data.length;
 
-            // Data Received: has violation date AND not disqualified/dismissed
+            // Data Received: has violation date AND status is not Disqualified or Not Pursued
+            const eligibleCount = data.filter(row => {
+                const status = (row['Status'] || '').toLowerCase();
+                return status !== 'disqualified' && status !== 'not pursued';
+            }).length;
+            
             const dataReceivedCount = data.filter(row => {
                 const hasViolationDate = row['Violation Date'] && row['Violation Date'].trim() !== '';
-                const notDisqualified = row['_rowType'] !== 'disqualified' && row['_rowType'] !== 'dismissed';
+                const status = (row['Status'] || '').toLowerCase();
+                const notDisqualified = status !== 'disqualified' && status !== 'not pursued';
                 return hasViolationDate && notDisqualified;
             }).length;
-            const dataReceivedPercentage = totalCount > 0 ? ((dataReceivedCount / totalCount) * 100).toFixed(1) : 0;
+            const dataReceivedPercentage = eligibleCount > 0 ? ((dataReceivedCount / eligibleCount) * 100).toFixed(1) : 0;
 
             const reviewedCount = data.filter(row => {
                 const status = (row['Status'] || '').toLowerCase();
@@ -3322,6 +3342,24 @@
                     <div class="status-item">
                         <span class="status-badge" style="background: #3498db; color: white;">Data Received: ${dataReceivedCount} (${dataReceivedPercentage}%)</span>
                     </div>
+                `;
+            }
+            
+            // Add refresh timestamps
+            const lastSheets = appData[tab].lastRefreshSheets;
+            const lastNYC = appData[tab].lastRefreshNYC;
+            const formatTimestamp = (isoString) => {
+                if (!isoString) return 'Never';
+                const date = new Date(isoString);
+                return date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+            };
+            
+            // Insert timestamps into the placeholder div
+            const timestampDiv = document.getElementById(`${tab}-timestamps`);
+            if (timestampDiv) {
+                timestampDiv.innerHTML = `
+                    📊 <strong>Last Google Sheets Refresh:</strong> ${formatTimestamp(lastSheets)} &nbsp;
+                    🏙️ <strong>Last NYC OpenData Refresh:</strong> ${formatTimestamp(lastNYC)}
                 `;
             }
         }
@@ -3453,9 +3491,11 @@
                 const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
                 if (!isNaN(amount) && amount > 0) {
                     totalPotential += amount;
-                    // Count both paid and requested as collected
-                    if (row['_rowType'] === 'paid' || row['_rowType'] === 'requested') {
+                    // Count paid as full amount, requested as 25%
+                    if (row['_rowType'] === 'paid') {
                         totalCollected += amount;
+                    } else if (row['_rowType'] === 'requested') {
+                        totalCollected += amount * 0.25;
                     }
                 }
             });
@@ -3500,23 +3540,23 @@
                 });
             }
 
-            // 5. Money Still in Pipeline
+            // 5. Money Still in Pipeline (show 25% expected from requested amounts)
             const requestedCount = allData.filter(row => row['_rowType'] === 'requested').length;
             let requestedAmount = 0;
             allData.filter(row => row['_rowType'] === 'requested').forEach(row => {
                 const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
                 if (!isNaN(amount)) requestedAmount += amount;
             });
-            const yourRequestedShare = requestedAmount * 0.25;
+            const yourRequestedShare = requestedAmount * 0.25 * 0.25; // 25% of amount, expecting 25% payment rate
             if (requestedCount > 0) {
                 facts.push({
                     title: '⏳ Money in Pipeline',
-                    description: `You have ${requestedCount} payment requests pending worth $${yourRequestedShare.toFixed(2)} to you`
+                    description: `You have ${requestedCount} payment requests pending worth approximately $${yourRequestedShare.toFixed(2)} to you (assuming 25% payment rate)`
                 });
             }
 
-            // 6. Disqualification Rate
-            const disqualifiedCount = allData.filter(row => row['_rowType'] === 'disqualified').length;
+            // 6. Disqualification Rate (include dismissed)
+            const disqualifiedCount = allData.filter(row => row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed').length;
             const disqualificationRate = ((disqualifiedCount / allData.length) * 100).toFixed(1);
             facts.push({
                 title: '❌ Disqualification Rate',
@@ -3524,6 +3564,7 @@
             });
 
             // 7. Win/Loss Ratio
+            const paidCount = allData.filter(row => row['_rowType'] === 'paid').length;
             const winLossRatio = disqualifiedCount > 0 ? (paidCount / disqualifiedCount).toFixed(2) : 'Infinity';
             facts.push({
                 title: '⚖️ Win/Loss Ratio',
@@ -3657,6 +3698,7 @@
                 }
                 boroughStats[borough].total++;
                 if (row['_rowType'] === 'paid') boroughStats[borough].paid++;
+                else if (row['_rowType'] === 'requested') boroughStats[borough].paid += 0.25;
             });
             let bestBorough = null;
             let bestBoroughRate = 0;
@@ -3705,6 +3747,7 @@
                     if (!dowStats[dow]) dowStats[dow] = { total: 0, paid: 0 };
                     dowStats[dow].total++;
                     if (row['_rowType'] === 'paid') dowStats[dow].paid++;
+                    else if (row['_rowType'] === 'requested') dowStats[dow].paid += 0.25;
                 }
             });
             let bestDOW = null;
@@ -3748,7 +3791,7 @@
 
             // 18. Quick Wins
             const unpaidUnder500 = allData.filter(row => {
-                if (row['_rowType'] === 'paid' || row['_rowType'] === 'disqualified') return false;
+                if (row['_rowType'] === 'paid' || row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed') return false;
                 const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
                 return !isNaN(amount) && amount > 0 && amount < 500;
             });
@@ -3767,7 +3810,7 @@
 
             // 19. Old Cases Needing Attention
             const oldUnpaid = allData.filter(row => {
-                if (row['_rowType'] === 'paid' || row['_rowType'] === 'disqualified') return false;
+                if (row['_rowType'] === 'paid' || row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed') return false;
                 const violationDate = new Date(row['Violation Date']);
                 const sixMonthsAgo = new Date();
                 sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -3914,6 +3957,30 @@
                 }
             }
 
+            // 27. Revenue Concentration Analysis
+            const revenueByCompany = {};
+            allData.filter(row => row['_rowType'] === 'paid').forEach(row => {
+                const company = normalizeCompanyName(row['Company Name'] || 'Unknown');
+                const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                if (!isNaN(amount)) {
+                    revenueByCompany[company] = (revenueByCompany[company] || 0) + amount;
+                }
+            });
+            
+            const totalPaidRevenue = Object.values(revenueByCompany).reduce((a, b) => a + b, 0);
+            const sortedCompanies = Object.entries(revenueByCompany).sort((a, b) => b[1] - a[1]);
+            
+            if (sortedCompanies.length >= 3) {
+                const top3Revenue = sortedCompanies.slice(0, 3).reduce((sum, [_, amt]) => sum + amt, 0);
+                const top3Percent = (top3Revenue / totalPaidRevenue * 100).toFixed(0);
+                const yourTop3 = top3Revenue * 0.25;
+                
+                facts.push({
+                    title: '🎯 Revenue Concentration',
+                    description: `Your top 3 companies (${sortedCompanies[0][0]}, ${sortedCompanies[1][0]}, ${sortedCompanies[2][0]}) account for ${top3Percent}% of revenue ($${yourTop3.toFixed(2)}) - ${top3Percent > 50 ? 'high concentration risk!' : 'good diversification!'}`
+                });
+            }
+
             // Render all facts
             container.innerHTML = facts.map(fact => `
                 <div style="background: white; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -4038,12 +4105,22 @@
             alert('Exporting comprehensive insights report... (Feature coming soon!)');
         }
 
-        // 1. Payment Probability Predictor
+        // 1. Top Priority Cases to Chase Now
         function generatePaymentPredictor() {
             const container = document.getElementById('insight-payment-predictor');
             const allData = getFilteredInsightsData();
 
-            // Calculate company payment rates
+            // Find unpaid cases
+            const unpaidCases = allData.filter(row => {
+                if (row['_rowType'] === 'requested' || row['_rowType'] === 'paid' || 
+                    row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed') {
+                    return false;
+                }
+                const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                return !isNaN(amount) && amount > 0;
+            });
+
+            // Calculate company payment history
             const companyStats = {};
             allData.forEach(row => {
                 const company = row['Company Name'] || 'Unknown';
@@ -4052,114 +4129,88 @@
                 }
                 companyStats[company].total++;
                 if (row['_rowType'] === 'paid') companyStats[company].paid++;
+                else if (row['_rowType'] === 'requested') companyStats[company].paid += 0.25;
             });
 
-            // Calculate borough success rates
-            const boroughStats = {};
-            allData.forEach(row => {
-                const borough = row['Violation Location (Borough)'] || 'Unknown';
-                if (!boroughStats[borough]) {
-                    boroughStats[borough] = { total: 0, paid: 0 };
-                }
-                boroughStats[borough].total++;
-                if (row['_rowType'] === 'paid') boroughStats[borough].paid++;
-            });
-
-            // Score all unpaid cases (exclude requested since they're already in pipeline and effectively paid)
-            const unpaidCases = allData.filter(row => {
-                // Only include truly unpaid cases (not requested, not paid, not disqualified/dismissed)
-                if (row['_rowType'] === 'requested' || row['_rowType'] === 'paid' || 
-                    row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed') {
-                    return false;
-                }
-                // Must have a paid amount to predict
-                const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
-                return !isNaN(amount) && amount > 0;
-            });
-
-            const scoredCases = unpaidCases.map(row => {
-                let score = 50; // Base score
-                
-                // Company history (+/- 30 points)
+            // Score each case for priority
+            const priorityCases = unpaidCases.map(row => {
+                let priorityScore = 0;
                 const company = row['Company Name'] || 'Unknown';
-                if (companyStats[company] && companyStats[company].total >= 3) {
-                    const companyRate = companyStats[company].paid / companyStats[company].total;
-                    score += (companyRate - 0.5) * 60;
-                }
-
-                // Borough (+/- 10 points)
-                const borough = row['Violation Location (Borough)'] || 'Unknown';
-                if (boroughStats[borough] && boroughStats[borough].total >= 5) {
-                    const boroughRate = boroughStats[borough].paid / boroughStats[borough].total;
-                    score += (boroughRate - 0.5) * 20;
-                }
-
-                // Amount (higher amounts slightly more likely to be paid)
                 const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
-                if (amount > 500) score += 5;
-                if (amount > 1000) score += 5;
-
-                // Age of violation (older = more urgent to pursue, but slightly lower chance)
+                const yourCut = amount * 0.25;
+                
+                // High value = higher priority (0-30 points)
+                if (yourCut > 100) priorityScore += 30;
+                else if (yourCut > 50) priorityScore += 20;
+                else if (yourCut > 25) priorityScore += 10;
+                
+                // Good company history = higher priority (0-40 points)
+                if (companyStats[company] && companyStats[company].total >= 2) {
+                    const payRate = companyStats[company].paid / companyStats[company].total;
+                    priorityScore += payRate * 40;
+                }
+                
+                // Recent violations = higher priority (0-20 points)
                 const violationDate = new Date(row['Violation Date']);
                 if (!isNaN(violationDate.getTime())) {
-                    const monthsOld = (new Date() - violationDate) / (1000 * 60 * 60 * 24 * 30);
-                    if (monthsOld > 6) score -= 5; // Older cases slightly harder
-                    if (monthsOld > 12) score -= 10; // Very old cases even harder
+                    const daysOld = (new Date() - violationDate) / (1000 * 60 * 60 * 24);
+                    if (daysOld < 90) priorityScore += 20;
+                    else if (daysOld < 180) priorityScore += 10;
                 }
-
-                // Clamp score between 0-100
-                score = Math.max(0, Math.min(100, score));
-
+                
+                // Has hearing date soon = urgent (0-10 points)
+                const hearingDate = new Date(row['Hearing Date']);
+                if (!isNaN(hearingDate.getTime())) {
+                    const daysUntil = (hearingDate - new Date()) / (1000 * 60 * 60 * 24);
+                    if (daysUntil > 0 && daysUntil < 30) priorityScore += 10;
+                }
+                
                 return {
                     ...row,
-                    probability: Math.round(score),
-                    expectedValue: amount * 0.25 * (score / 100)
+                    priorityScore: Math.round(priorityScore),
+                    yourCut: yourCut
                 };
             });
 
-            scoredCases.sort((a, b) => b.probability - a.probability);
+            priorityCases.sort((a, b) => b.priorityScore - a.priorityScore);
 
             let html = '<div style="margin-bottom: 15px; padding: 12px; background: #f0f4ff; border-radius: 6px; border-left: 4px solid #667eea;">';
-            html += `<strong>Analyzed ${scoredCases.length} unpaid cases</strong> - showing top 20 by probability`;
+            html += `<strong>🎯 Action Items:</strong> ${priorityCases.length} unpaid cases analyzed - focus on these top 15 for maximum ROI`;
             html += '</div>';
 
             html += '<div style="overflow-x: auto;"><table style="width: 100%; font-size: 0.85em; border-collapse: collapse;">';
             html += '<thead><tr style="background: #667eea; color: white;">';
-            html += '<th style="padding: 8px; text-align: left;">Probability</th>';
+            html += '<th style="padding: 8px; text-align: left;">Priority</th>';
             html += '<th style="padding: 8px; text-align: left;">Company</th>';
             html += '<th style="padding: 8px; text-align: left;">Summons</th>';
-            html += '<th style="padding: 8px; text-align: right;">Your Potential</th>';
-            html += '<th style="padding: 8px; text-align: right;">Expected Value</th>';
-            html += '<th style="padding: 8px; text-align: left;">Borough</th>';
-            html += '<th style="padding: 8px; text-align: left;">Recommendation</th>';
+            html += '<th style="padding: 8px; text-align: right;">Your Cut</th>';
+            html += '<th style="padding: 8px; text-align: left;">Action</th>';
             html += '</tr></thead><tbody>';
 
-            scoredCases.slice(0, 20).forEach((row, i) => {
+            priorityCases.slice(0, 15).forEach((row, i) => {
                 const bgColor = i % 2 === 0 ? '#f8f9fa' : 'white';
-                const probColor = row.probability >= 70 ? '#27ae60' : row.probability >= 50 ? '#f39c12' : '#e74c3c';
-                const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
-                const yourPotential = amount * 0.25;
+                const priorityColor = row.priorityScore >= 70 ? '#27ae60' : row.priorityScore >= 40 ? '#f39c12' : '#e74c3c';
                 
-                let recommendation = row.probability >= 70 ? '✅ Pursue immediately' : 
-                                   row.probability >= 50 ? '⚠️ Follow up' : 
-                                   '❌ Low priority';
-
+                let action = '';
+                if (row.priorityScore >= 70) action = '✅ Chase Now';
+                else if (row.priorityScore >= 40) action = '⚠️ Follow Up';
+                else action = '📋 Monitor';
+                
                 html += `<tr style="background: ${bgColor};">`;
-                html += `<td style="padding: 6px;"><span style="background: ${probColor}; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">${row.probability}%</span></td>`;
-                html += `<td style="padding: 6px;">${row['Company Name'] || 'Unknown'}</td>`;
-                html += `<td style="padding: 6px; font-family: monospace;">${row['Summons Number'] || 'N/A'}</td>`;
-                html += `<td style="padding: 6px; text-align: right; font-weight: bold;">$${yourPotential.toFixed(2)}</td>`;
-                html += `<td style="padding: 6px; text-align: right; color: #27ae60;">$${row.expectedValue.toFixed(2)}</td>`;
-                html += `<td style="padding: 6px;">${row['Violation Location (Borough)'] || 'Unknown'}</td>`;
-                html += `<td style="padding: 6px; font-size: 0.9em;">${recommendation}</td>`;
+                html += `<td style="padding: 8px;"><span style="background: ${priorityColor}; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">${row.priorityScore}</span></td>`;
+                html += `<td style="padding: 8px;">${(row['Company Name'] || 'Unknown').substring(0, 30)}</td>`;
+                html += `<td style="padding: 8px; font-family: monospace;">${row['Summons Number'] || 'N/A'}</td>`;
+                html += `<td style="padding: 8px; text-align: right; font-weight: bold; color: #27ae60;">$${row.yourCut.toFixed(2)}</td>`;
+                html += `<td style="padding: 8px;">${action}</td>`;
                 html += '</tr>';
             });
 
             html += '</tbody></table></div>';
 
-            const totalExpected = scoredCases.reduce((sum, c) => sum + c.expectedValue, 0);
-            html += `<div style="margin-top: 15px; padding: 12px; background: #d4edda; border-radius: 6px; font-weight: bold; text-align: center;">`;
-            html += `💰 Total Expected Value from All Unpaid Cases: $${totalExpected.toFixed(2)}`;
+            // Add summary stats
+            const topTenValue = priorityCases.slice(0, 10).reduce((sum, row) => sum + row.yourCut, 0);
+            html += '<div style="margin-top: 15px; padding: 15px; background: #d4edda; border-radius: 6px; border-left: 4px solid #27ae60;">';
+            html += `<strong>💰 Quick Win Potential:</strong> Top 10 cases worth <strong>$${topTenValue.toFixed(2)}</strong> to you`;
             html += '</div>';
 
             container.innerHTML = html;
@@ -4203,7 +4254,7 @@
                     }
                 } else if (row['_rowType'] === 'requested') {
                     profile.requested++;
-                } else if (row['_rowType'] === 'disqualified') {
+                } else if (row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed') {
                     profile.disqualified++;
                 }
                 
@@ -4221,7 +4272,9 @@
                 .filter(c => companyProfiles[c].total >= 3)
                 .map(company => {
                     const profile = companyProfiles[company];
-                    const paymentRate = profile.paid / profile.total;
+                    // Count paid as 1.0 and requested as 0.25 in payment rate
+                    const effectivePaid = profile.paid + (profile.requested * 0.25);
+                    const paymentRate = effectivePaid / profile.total;
                     const avgDays = profile.paymentDays.length > 0 
                         ? Math.round(profile.paymentDays.reduce((a, b) => a + b, 0) / profile.paymentDays.length)
                         : 0;
@@ -4297,6 +4350,10 @@
                 html += '</div>';
             });
             
+            html += '</div>';
+            
+            html += '<div style="margin-top: 15px; padding: 12px; background: #f0f4ff; border-radius: 6px; border-left: 4px solid #667eea;">';
+            html += '<strong>📊 Note:</strong> Chart shows fiscal year starting in July';
             html += '</div>';
 
             container.innerHTML = html;
@@ -4475,6 +4532,10 @@
             html += `<div style="padding: 15px; background: #e8f4f8; border-radius: 6px; border-left: 4px solid #3498db;">`;
             html += `<strong>💡 Insight:</strong> Based on historical data, payments typically arrive ${avgDelay} days after request submission.`;
             html += '</div>';
+            
+            html += '<div style="margin-top: 15px; padding: 12px; background: #f0f4ff; border-radius: 6px; border-left: 4px solid #667eea;">';
+            html += '<strong>📊 Note:</strong> Chart shows fiscal year starting in July';
+            html += '</div>';
 
             container.innerHTML = html;
         }
@@ -4485,7 +4546,7 @@
             const container = document.getElementById('insight-disqualification');
             const allData = getFilteredInsightsData();
 
-            const disqualifiedCases = allData.filter(row => row['_rowType'] === 'disqualified');
+            const disqualifiedCases = allData.filter(row => row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed');
             
             // Analyze patterns
             const boroughBreakdown = {};
@@ -4559,6 +4620,10 @@
             html += `<div style="margin-top: 15px; padding: 12px; background: #d4edda; border-radius: 6px;">`;
             html += `<strong>💡 Recommendation:</strong> Review documentation procedures for your top dismissal reasons. Consider focusing efforts on boroughs with lower disqualification rates.`;
             html += '</div>';
+            
+            html += '<div style="margin-top: 15px; padding: 12px; background: #f0f4ff; border-radius: 6px; border-left: 4px solid #667eea;">';
+            html += '<strong>📊 Note:</strong> Chart shows fiscal year starting in July';
+            html += '</div>';
 
             container.innerHTML = html;
         }
@@ -4587,6 +4652,9 @@
                     locationStats[borough].paid++;
                     const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
                     if (!isNaN(amount)) locationStats[borough].revenue += amount;
+                }
+                else if (row['_rowType'] === 'requested') {
+                    locationStats[borough].paid += 0.25;
                 }
                 
                 // Street stats within borough
@@ -4641,6 +4709,10 @@
                     html += `</div>`;
                 });
 
+            html += '</div>';
+            
+            html += '<div style="margin-top: 15px; padding: 12px; background: #f0f4ff; border-radius: 6px; border-left: 4px solid #667eea;">';
+            html += '<strong>📊 Note:</strong> Chart shows fiscal year starting in July';
             html += '</div>';
 
             container.innerHTML = html;
@@ -4697,7 +4769,7 @@
 
             // Check for old unpaid cases
             const oldCases = allData.filter(row => {
-                if (row['_rowType'] === 'paid' || row['_rowType'] === 'disqualified') return false;
+                if (row['_rowType'] === 'paid' || row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed') return false;
                 const violationDate = new Date(row['Violation Date']);
                 if (isNaN(violationDate.getTime())) return false;
                 const daysSince = Math.floor((now - violationDate) / (1000 * 60 * 60 * 24));
@@ -4717,7 +4789,7 @@
 
             // Check for high-value unpaid cases
             const highValueUnpaid = allData.filter(row => {
-                if (row['_rowType'] === 'paid' || row['_rowType'] === 'disqualified') return false;
+                if (row['_rowType'] === 'paid' || row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed') return false;
                 const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
                 return amount > 1000;
             });
@@ -4772,22 +4844,28 @@
             const allData = getFilteredInsightsData();
 
             const monthlyStats = {};
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const fiscalMonthNames = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+            const calendarMonthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
             allData.forEach(row => {
                 const date = new Date(row['Violation Date']);
                 if (!isNaN(date.getTime())) {
-                    const month = date.getMonth();
-                    if (!monthlyStats[month]) {
-                        monthlyStats[month] = 0;
+                    const calendarMonth = date.getMonth(); // 0-11 (Jan-Dec)
+                    // Convert to fiscal month (July=0, June=11)
+                    const fiscalMonth = calendarMonth >= 6 ? calendarMonth - 6 : calendarMonth + 6;
+                    if (!monthlyStats[fiscalMonth]) {
+                        monthlyStats[fiscalMonth] = 0;
                     }
-                    monthlyStats[month]++;
+                    monthlyStats[fiscalMonth]++;
                 }
             });
 
             const avgPerMonth = Object.values(monthlyStats).reduce((a, b) => a + b, 0) / 12;
-            const nextMonth = new Date().getMonth() + 1;
-            const predictedNext = monthlyStats[nextMonth % 12] || avgPerMonth;
+            const now = new Date();
+            const currentCalendarMonth = now.getMonth();
+            const currentFiscalMonth = currentCalendarMonth >= 6 ? currentCalendarMonth - 6 : currentCalendarMonth + 6;
+            const nextFiscalMonth = (currentFiscalMonth + 1) % 12;
+            const predictedNext = monthlyStats[nextFiscalMonth] || avgPerMonth;
 
             let html = '<div style="margin-bottom: 20px;">';
             html += '<canvas id="seasonal-chart"></canvas>';
@@ -4804,10 +4882,14 @@
             const busiestMonth = Object.entries(monthlyStats).sort((a, b) => b[1] - a[1])[0];
             html += `<div style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">`;
             html += '<div style="font-size: 0.9em; opacity: 0.9;">Peak Season</div>';
-            html += `<div style="font-size: 2.5em; font-weight: bold; margin: 10px 0;">${monthNames[busiestMonth[0]]}</div>`;
+            html += `<div style="font-size: 2.5em; font-weight: bold; margin: 10px 0;">${fiscalMonthNames[busiestMonth[0]]}</div>`;
             html += `<div style="font-size: 0.85em;">${busiestMonth[1]} violations</div>`;
             html += '</div>';
 
+            html += '</div>';
+            
+            html += '<div style="margin-top: 15px; padding: 12px; background: #f0f4ff; border-radius: 6px; border-left: 4px solid #667eea;">';
+            html += '<strong>📊 Note:</strong> Chart shows fiscal year starting in July';
             html += '</div>';
 
             container.innerHTML = html;
@@ -4819,10 +4901,10 @@
                     new Chart(ctx.getContext('2d'), {
                         type: 'line',
                         data: {
-                            labels: monthNames,
+                            labels: fiscalMonthNames,
                             datasets: [{
-                                label: 'Violations by Month',
-                                data: monthNames.map((_, i) => monthlyStats[i] || 0),
+                                label: 'Violations by Month (Fiscal Year)',
+                                data: fiscalMonthNames.map((_, i) => monthlyStats[i] || 0),
                                 borderColor: '#667eea',
                                 backgroundColor: 'rgba(102, 126, 234, 0.1)',
                                 borderWidth: 3,
@@ -4848,82 +4930,176 @@
             const container = document.getElementById('insight-behavior-change');
             const allData = getFilteredInsightsData();
 
-            const sixMonthsAgo = new Date();
-            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-            const companyBehavior = {};
-
+            // Find revenue opportunities
+            const opportunities = [];
+            
+            // 1. High-value unpaid cases
+            const unpaidHighValue = allData.filter(row => {
+                if (row['_rowType'] === 'requested' || row['_rowType'] === 'paid' || 
+                    row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed') {
+                    return false;
+                }
+                const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                return !isNaN(amount) && amount > 300;
+            });
+            
+            if (unpaidHighValue.length > 0) {
+                const totalValue = unpaidHighValue.reduce((sum, row) => {
+                    const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                    return sum + (amount * 0.25);
+                }, 0);
+                
+                opportunities.push({
+                    type: 'High-Value Cases',
+                    icon: '💎',
+                    count: unpaidHighValue.length,
+                    value: totalValue,
+                    description: `You have ${unpaidHighValue.length} unpaid cases worth over $75 each to you`,
+                    action: 'Prioritize these for immediate follow-up',
+                    color: '#27ae60'
+                });
+            }
+            
+            // 2. Companies with good payment history but unpaid cases
+            const companyStats = {};
             allData.forEach(row => {
                 const company = row['Company Name'] || 'Unknown';
+                if (!companyStats[company]) {
+                    companyStats[company] = { total: 0, paid: 0, unpaid: [] };
+                }
+                companyStats[company].total++;
+                if (row['_rowType'] === 'paid') {
+                    companyStats[company].paid++;
+                } else if (row['_rowType'] === 'requested') {
+                    companyStats[company].paid += 0.25;
+                } else if (row['_rowType'] !== 'disqualified' && row['_rowType'] !== 'dismissed' && row['_rowType'] !== 'requested') {
+                    companyStats[company].unpaid.push(row);
+                }
+            });
+            
+            const reliableWithUnpaid = Object.entries(companyStats).filter(([company, stats]) => {
+                const payRate = stats.paid / stats.total;
+                return stats.total >= 3 && payRate >= 0.6 && stats.unpaid.length > 0;
+            }).map(([company, stats]) => {
+                const unpaidValue = stats.unpaid.reduce((sum, row) => {
+                    const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                    return sum + (amount * 0.25);
+                }, 0);
+                return { company, stats, unpaidValue };
+            }).sort((a, b) => b.unpaidValue - a.unpaidValue);
+            
+            if (reliableWithUnpaid.length > 0) {
+                const totalValue = reliableWithUnpaid.reduce((sum, item) => sum + item.unpaidValue, 0);
+                const topCompany = reliableWithUnpaid[0];
+                const payRate = Math.round((topCompany.stats.paid / topCompany.stats.total) * 100);
+                
+                opportunities.push({
+                    type: 'Reliable Payers',
+                    icon: '⭐',
+                    count: reliableWithUnpaid.length,
+                    value: totalValue,
+                    description: `${reliableWithUnpaid.length} companies with strong payment history (${payRate}%+ rate) have unpaid cases`,
+                    action: `Top target: ${topCompany.company} (${topCompany.stats.unpaid.length} unpaid, worth $${topCompany.unpaidValue.toFixed(2)})`,
+                    color: '#f39c12'
+                });
+            }
+            
+            // 3. Quick wins - low value but easy to collect
+            const quickWins = allData.filter(row => {
+                if (row['_rowType'] !== 'paid' && row['_rowType'] !== 'requested' && 
+                    row['_rowType'] !== 'disqualified' && row['_rowType'] !== 'dismissed') {
+                    const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                    const violationDate = new Date(row['Violation Date']);
+                    const daysOld = (new Date() - violationDate) / (1000 * 60 * 60 * 24);
+                    return !isNaN(amount) && amount > 0 && amount < 300 && daysOld < 90;
+                }
+                return false;
+            });
+            
+            if (quickWins.length > 0) {
+                const totalValue = quickWins.reduce((sum, row) => {
+                    const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                    return sum + (amount * 0.25);
+                }, 0);
+                
+                opportunities.push({
+                    type: 'Quick Wins',
+                    icon: '⚡',
+                    count: quickWins.length,
+                    value: totalValue,
+                    description: `${quickWins.length} recent, low-value cases under $300 - easy to collect`,
+                    action: 'Batch process these for efficient collection',
+                    color: '#3498db'
+                });
+            }
+            
+            // 4. Cases approaching statute of limitations
+            const oldCases = allData.filter(row => {
+                if (row['_rowType'] === 'paid' || row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed') {
+                    return false;
+                }
                 const violationDate = new Date(row['Violation Date']);
-                
-                if (!companyBehavior[company]) {
-                    companyBehavior[company] = {
-                        recent: { total: 0, paid: 0 },
-                        historical: { total: 0, paid: 0 }
-                    };
-                }
-
-                const isRecent = !isNaN(violationDate.getTime()) && violationDate > sixMonthsAgo;
-                const bucket = isRecent ? companyBehavior[company].recent : companyBehavior[company].historical;
-                
-                bucket.total++;
-                if (row['_rowType'] === 'paid') bucket.paid++;
+                const daysOld = (new Date() - violationDate) / (1000 * 60 * 60 * 24);
+                return !isNaN(violationDate.getTime()) && daysOld > 365 && daysOld < 730;
             });
-
-            // Find significant changes
-            const changes = [];
-            Object.entries(companyBehavior).forEach(([company, behavior]) => {
-                if (behavior.recent.total < 3 || behavior.historical.total < 3) return; // Not enough data
+            
+            if (oldCases.length > 0) {
+                const totalValue = oldCases.reduce((sum, row) => {
+                    const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                    return sum + (amount * 0.25);
+                }, 0);
                 
-                const recentRate = behavior.recent.paid / behavior.recent.total;
-                const historicalRate = behavior.historical.paid / behavior.historical.total;
-                const change = (recentRate - historicalRate) * 100;
-                
-                if (Math.abs(change) >= 20) { // Significant change
-                    changes.push({
-                        company,
-                        recentRate: (recentRate * 100).toFixed(0),
-                        historicalRate: (historicalRate * 100).toFixed(0),
-                        change: change.toFixed(0),
-                        direction: change > 0 ? 'improving' : 'declining',
-                        recentCases: behavior.recent.total
-                    });
-                }
-            });
-
-            changes.sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+                opportunities.push({
+                    type: 'Urgent - Aging Cases',
+                    icon: '⚠️',
+                    count: oldCases.length,
+                    value: totalValue,
+                    description: `${oldCases.length} cases over 1 year old - act now before statute runs out`,
+                    action: 'These need immediate attention!',
+                    color: '#e74c3c'
+                });
+            }
 
             let html = '';
             
-            if (changes.length === 0) {
+            if (opportunities.length === 0) {
                 html = `<div style="text-align: center; padding: 40px; color: #666;">`;
-                html += `<div style="font-size: 2em; margin-bottom: 10px;">📊</div>`;
-                html += `<p>No significant behavior changes detected in the last 6 months.</p>`;
+                html += `<div style="font-size: 2em; margin-bottom: 10px;">💰</div>`;
+                html += `<p>All major revenue opportunities have been captured!</p>`;
                 html += `</div>`;
             } else {
-                html += '<div style="display: grid; gap: 12px;">';
-                changes.slice(0, 10).forEach(change => {
-                    const bgColor = change.direction === 'improving' ? '#d4edda' : '#f8d7da';
-                    const borderColor = change.direction === 'improving' ? '#27ae60' : '#e74c3c';
-                    const icon = change.direction === 'improving' ? '📈' : '📉';
-                    
-                    html += `<div style="background: ${bgColor}; border-left: 4px solid ${borderColor}; padding: 15px; border-radius: 6px;">`;
-                    html += `<div style="display: flex; justify-content: space-between; align-items: start;">`;
+                // Sort by value descending
+                opportunities.sort((a, b) => b.value - a.value);
+                
+                html += '<div style="display: grid; gap: 15px;">';
+                opportunities.forEach(opp => {
+                    html += `<div style="background: white; border-left: 5px solid ${opp.color}; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">`;
+                    html += `<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">`;
                     html += `<div>`;
-                    html += `<h4 style="color: #2c3e50; margin-bottom: 6px;">${icon} ${change.company}</h4>`;
-                    html += `<p style="font-size: 0.9em; color: #666;">`;
-                    html += `Payment rate ${change.direction}: ${change.historicalRate}% → ${change.recentRate}% `;
-                    html += `<strong style="color: ${borderColor};">(${change.change > 0 ? '+' : ''}${change.change}%)</strong>`;
-                    html += `</p>`;
-                    html += `<div style="font-size: 0.85em; color: #666; margin-top: 4px;">`;
-                    html += `${change.recentCases} recent cases analyzed`;
+                    html += `<h4 style="color: #2c3e50; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">`;
+                    html += `<span style="font-size: 1.5em;">${opp.icon}</span> ${opp.type}`;
+                    html += `</h4>`;
+                    html += `</div>`;
+                    html += `<div style="background: ${opp.color}; color: white; padding: 10px 20px; border-radius: 6px; text-align: center;">`;
+                    html += `<div style="font-size: 1.8em; font-weight: bold;">$${opp.value.toFixed(2)}</div>`;
+                    html += `<div style="font-size: 0.8em; opacity: 0.9;">${opp.count} cases</div>`;
                     html += `</div>`;
                     html += `</div>`;
+                    html += `<p style="color: #666; margin-bottom: 8px;">${opp.description}</p>`;
+                    html += `<div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 0.9em; color: #2c3e50;">`;
+                    html += `<strong>💡 Action:</strong> ${opp.action}`;
                     html += `</div>`;
                     html += `</div>`;
                 });
                 html += '</div>';
+                
+                // Add total
+                const totalOpportunityValue = opportunities.reduce((sum, opp) => sum + opp.value, 0);
+                html += `<div style="margin-top: 15px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; text-align: center;">`;
+                html += `<div style="font-size: 1.2em; margin-bottom: 5px;">🎯 Total Revenue Opportunity</div>`;
+                html += `<div style="font-size: 3em; font-weight: bold;">$${totalOpportunityValue.toFixed(2)}</div>`;
+                html += `<div style="font-size: 0.9em; opacity: 0.9;">Act on these opportunities to maximize your revenue</div>`;
+                html += `</div>`;
             }
 
             container.innerHTML = html;
@@ -4937,7 +5113,12 @@
             const paidAndRequestedCases = allData.filter(row => row['_rowType'] === 'paid' || row['_rowType'] === 'requested');
             const totalRevenue = paidAndRequestedCases.reduce((sum, row) => {
                 const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
-                return sum + (isNaN(amount) ? 0 : amount * 0.25);
+                if (row['_rowType'] === 'paid') {
+                    return sum + (isNaN(amount) ? 0 : amount * 0.25);
+                } else if (row['_rowType'] === 'requested') {
+                    return sum + (isNaN(amount) ? 0 : amount * 0.25 * 0.25);
+                }
+                return sum;
             }, 0);
 
             const avgRevenuePerCase = paidAndRequestedCases.length > 0 ? totalRevenue / paidAndRequestedCases.length : 0;
@@ -4948,7 +5129,12 @@
 
             const hearingRevenue = withHearing.reduce((sum, row) => {
                 const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
-                return sum + (amount * 0.25);
+                if (row['_rowType'] === 'paid') {
+                    return sum + (amount * 0.25);
+                } else if (row['_rowType'] === 'requested') {
+                    return sum + (amount * 0.25 * 0.25);
+                }
+                return sum;
             }, 0);
 
             const noHearingRevenue = withoutHearing.reduce((sum, row) => {
@@ -5037,6 +5223,10 @@
             html += `<div style="margin-top: 15px; padding: 12px; background: #e8f4f8; border-radius: 6px;">`;
             html += `<strong>💡 Insight:</strong> ${avgWithHearing > avgWithoutHearing ? 'Cases with hearings generate more revenue on average' : 'Early settlements are more profitable'} - adjust your strategy accordingly.`;
             html += '</div>';
+            
+            html += '<div style="margin-top: 15px; padding: 12px; background: #f0f4ff; border-radius: 6px; border-left: 4px solid #667eea;">';
+            html += '<strong>📊 Note:</strong> Chart shows fiscal year starting in July';
+            html += '</div>';
 
             container.innerHTML = html;
         }
@@ -5065,7 +5255,7 @@
                 total: conEdData.length,
                 paid: conEdData.filter(r => r['_rowType'] === 'paid').length,
                 requested: conEdData.filter(r => r['_rowType'] === 'requested').length,
-                disqualified: conEdData.filter(r => r['_rowType'] === 'disqualified').length,
+                disqualified: conEdData.filter(r => r['_rowType'] === 'disqualified' || r['_rowType'] === 'dismissed').length,
                 unpaid: conEdData.filter(r => !r['_rowType'] || r['_rowType'] === 'submitted').length,
                 totalRevenue: 0,
                 totalPending: 0,
@@ -5731,7 +5921,7 @@
                 data = data.filter(row => {
                     if (statusFilter === 'paid') return row['_rowType'] === 'paid';
                     if (statusFilter === 'requested') return row['_rowType'] === 'requested';
-                    if (statusFilter === 'disqualified') return row['_rowType'] === 'disqualified';
+                    if (statusFilter === 'disqualified') return row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed';
                     if (statusFilter === 'unpaid') return !row['Payment Status'] || row['Payment Status'] === '';
                     return true;
                 });
@@ -6229,7 +6419,7 @@
                             timeData[key].paid++;
                         } else if (row['_rowType'] === 'requested') {
                             timeData[key].requested++;
-                        } else if (row['_rowType'] === 'disqualified') {
+                        } else if (row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed') {
                             timeData[key].disqualified++;
                         } else {
                             timeData[key].unpaid++;
@@ -6390,7 +6580,7 @@
                             timeData[key] = { total: 0, disqualified: 0 };
                         }
                         timeData[key].total++;
-                        if (row['_rowType'] === 'disqualified') {
+                        if (row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed') {
                             timeData[key].disqualified++;
                         }
                     }
@@ -6551,7 +6741,7 @@
                             }
                         } else if (row['_rowType'] === 'requested') {
                             timeData[key].requested++;
-                        } else if (row['_rowType'] === 'disqualified') {
+                        } else if (row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed') {
                             timeData[key].disqualified++;
                         }
                     }
