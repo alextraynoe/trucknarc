@@ -452,6 +452,10 @@
             opacity: 0.9;
         }
 
+        .row-light-blue {
+            background: #d1ecf1 !important;
+        }
+
         .status-bar {
             background: white;
             padding: 8px;
@@ -660,6 +664,16 @@
             font-size: 0.9em;
         }
 
+        .sheet-input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+        }
+
+        .sheet-input-wrapper input {
+            flex: 1;
+        }
+
         .sheet-input-group input {
             width: 100%;
             padding: 10px;
@@ -667,6 +681,29 @@
             border-radius: 4px;
             font-size: 0.85em;
             min-height: 44px;
+        }
+
+        .btn-edit-sheet {
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.85em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            min-height: 44px;
+        }
+
+        .btn-edit-sheet:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn-edit-sheet:active {
+            transform: translateY(0);
         }
 
         .auto-refresh-indicator {
@@ -1034,6 +1071,158 @@
                 padding: 2px;
             }
         }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background-color: #f8f9fa;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 800px;
+            width: 90%;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #5a7fa7;
+        }
+
+        .modal-header h2 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 1.4em;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+            transition: color 0.3s;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #e74c3c;
+        }
+
+        .email-group {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #5a7fa7;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .email-group h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+
+        .copy-section {
+            margin-bottom: 15px;
+        }
+
+        .copy-section label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .copy-section textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.9em;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, #5a7fa7 0%, #4a6f97 100%);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 5px;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .copy-btn.copied {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+
+        /* Data Converter Tool */
+        .converter-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .converter-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .converter-section textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85em;
+            margin-bottom: 10px;
+        }
+
+        .converter-section input[type="date"] {
+            padding: 10px;
+            border: 2px solid #5a7fa7;
+            border-radius: 6px;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 200px;
+        }
+
+        .converter-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
@@ -1341,6 +1530,7 @@
 
             <div class="money-card">
                 <h3>💚 AT Dataset</h3>
+                <button class="btn btn-success" onclick="showEmailExportModal('at')" style="margin-bottom: 10px;">📧 Export for Email (Groups of 8)</button>
                 <div class="table-container">
                     <table id="new-money-at-table">
                         <thead id="new-money-at-thead"></thead>
@@ -1352,6 +1542,7 @@
 
             <div class="money-card">
                 <h3>💙 AT NYC Dataset</h3>
+                <button class="btn btn-success" onclick="showEmailExportModal('at-nyc')" style="margin-bottom: 10px;">📧 Export for Email (Groups of 8)</button>
                 <div class="table-container">
                     <table id="new-money-at-nyc-table">
                         <thead id="new-money-at-nyc-thead"></thead>
@@ -1363,6 +1554,7 @@
 
             <div class="money-card">
                 <h3>💛 MBT Dataset</h3>
+                <button class="btn btn-success" onclick="showEmailExportModal('mbt')" style="margin-bottom: 10px;">📧 Export for Email (Groups of 8)</button>
                 <div class="table-container">
                     <table id="new-money-mbt-table">
                         <thead id="new-money-mbt-thead"></thead>
@@ -1370,6 +1562,79 @@
                     </table>
                 </div>
                 <div class="money-total" id="new-money-mbt-totals"></div>
+            </div>
+
+            <!-- Requested but Not Yet Paid Section -->
+            <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 2em; margin-bottom: 10px;">⏳📋🕐</div>
+                    <h2 style="color: white; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">Requested but Not Yet Paid</h2>
+                    <p style="color: white; opacity: 0.95; font-size: 0.95em; margin-top: 5px;">Payment requests submitted but not yet received</p>
+                </div>
+
+                <!-- Overall Total -->
+                <div id="pending-overall-total"></div>
+
+                <div class="money-card">
+                    <h3>💚 AT Dataset</h3>
+                    <div class="table-container">
+                        <table id="pending-at-table">
+                            <thead id="pending-at-thead"></thead>
+                            <tbody id="pending-at-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div class="money-total" id="pending-at-totals"></div>
+                </div>
+
+                <div class="money-card">
+                    <h3>💙 AT NYC Dataset</h3>
+                    <div class="table-container">
+                        <table id="pending-at-nyc-table">
+                            <thead id="pending-at-nyc-thead"></thead>
+                            <tbody id="pending-at-nyc-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div class="money-total" id="pending-at-nyc-totals"></div>
+                </div>
+
+                <div class="money-card">
+                    <h3>💛 MBT Dataset</h3>
+                    <div class="table-container">
+                        <table id="pending-mbt-table">
+                            <thead id="pending-mbt-thead"></thead>
+                            <tbody id="pending-mbt-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div class="money-total" id="pending-mbt-totals"></div>
+                </div>
+            </div>
+
+            <!-- Data Converter Tool -->
+            <div class="converter-section">
+                <h3>🔧 OATH Data Converter</h3>
+                <p style="margin-bottom: 15px; color: #666; font-size: 0.9em;">
+                    Paste raw OATH data (format: "Office of Administrative Trials and HearingsBP00861922Z87.50...")
+                    and convert it to a table format.
+                </p>
+                
+                <label for="raw-data-input" style="font-weight: bold; display: block; margin-bottom: 5px;">Raw Data Input:</label>
+                <textarea id="raw-data-input" rows="6" placeholder="Paste raw OATH data here..."></textarea>
+                
+                <div style="margin-bottom: 10px;">
+                    <label for="payment-date-input" style="font-weight: bold; display: block; margin-bottom: 5px;">Payment Date:</label>
+                    <input type="date" id="payment-date-input">
+                </div>
+
+                <div class="converter-buttons">
+                    <button class="btn btn-primary" onclick="convertOATHData()">🔄 Convert Data</button>
+                    <button class="btn btn-success" onclick="copyConvertedData()">📋 Copy Result</button>
+                    <button class="btn" onclick="clearConverter()">🗑️ Clear</button>
+                </div>
+
+                <div id="converted-output" style="margin-top: 15px; display: none;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">Converted Output:</label>
+                    <textarea id="converted-data-output" rows="8" readonly style="background-color: #f0f0f0;"></textarea>
+                </div>
             </div>
         </div>
 
@@ -1563,11 +1828,30 @@
 
         <!-- FUN FACTS Tab -->
         <div id="fun-facts" class="tab-content">
-            <div class="controls">
-                <button class="btn btn-primary" onclick="generateFunFacts()">🎉 Generate Fun Facts</button>
+            <!-- Festive Party Header -->
+            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #ffd700 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 25px; text-align: center; box-shadow: 0 8px 16px rgba(0,0,0,0.2); position: relative; overflow: hidden;">
+                <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px); animation: shine 20s linear infinite; pointer-events: none;"></div>
+                <div style="position: relative; z-index: 1;">
+                    <div style="font-size: 3em; margin-bottom: 10px;">🎉🎊🎈</div>
+                    <h2 style="margin: 0 0 15px 0; font-size: 2.2em; text-shadow: 3px 3px 6px rgba(0,0,0,0.3); font-weight: bold;">Fun Facts & Celebrations!</h2>
+                    <p style="font-size: 1.2em; opacity: 0.95; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); margin: 0;">Discover amazing insights about your violation tracking journey! 🚀✨</p>
+                    <div style="font-size: 3em; margin-top: 10px;">🎆🌟💰</div>
+                </div>
             </div>
-            <div id="fun-facts-container" style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 20px;"></div>
+            
+            <div class="controls" style="text-align: center; margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="generateFunFacts()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 15px 30px; font-size: 1.1em; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.2); transform: scale(1); transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">🎉 Generate Fun Facts 🎉</button>
+            </div>
+            
+            <div id="fun-facts-container" style="display: grid; grid-template-columns: 1fr; gap: 20px; margin-top: 20px;"></div>
         </div>
+
+        <style>
+            @keyframes shine {
+                0% { transform: translate(-50%, -50%) rotate(0deg); }
+                100% { transform: translate(-50%, -50%) rotate(360deg); }
+            }
+        </style>
 
         <!-- INSIGHTS Tab -->
         <div id="insights" class="tab-content">
@@ -1885,47 +2169,87 @@
                     <h4 style="margin: 15px 0 10px 0; color: #1e3c72;">AT Dataset</h4>
                     <div class="sheet-input-group">
                         <label>Master Data:</label>
-                        <input type="text" id="sheet-at-master" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                        <div class="sheet-input-wrapper">
+                            <input type="text" id="sheet-at-master" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                            <button class="btn-edit-sheet" onclick="window.open('https://docs.google.com/spreadsheets/d/1mWzy75S0XFDxwd9Nn0bQyQ6AjN5prj3rNwXBdMLTEUY/edit?usp=sharing', '_blank')">✏️ Edit</button>
+                        </div>
                     </div>
                     <div class="sheet-input-group">
                         <label>Paid from NYC:</label>
-                        <input type="text" id="sheet-at-paid" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                        <div class="sheet-input-wrapper">
+                            <input type="text" id="sheet-at-paid" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                            <button class="btn-edit-sheet" onclick="window.open('https://docs.google.com/spreadsheets/d/1T9TpeywlidMlseg08kA29X1smm5tqVKU4iAGnxJV4os/edit?usp=sharing', '_blank')">✏️ Edit</button>
+                        </div>
                     </div>
                     <div class="sheet-input-group">
                         <label>Payment Requests:</label>
-                        <input type="text" id="sheet-at-requests" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                        <div class="sheet-input-wrapper">
+                            <input type="text" id="sheet-at-requests" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                            <button class="btn-edit-sheet" onclick="window.open('https://docs.google.com/spreadsheets/d/1k3hoxEmK5gvATnQsoghfwxsj6_fcazmth9kuMb_mUeE/edit?usp=sharing', '_blank')">✏️ Edit</button>
+                        </div>
                     </div>
 
                     <h4 style="margin: 15px 0 10px 0; color: #1e3c72;">AT NYC Dataset</h4>
                     <div class="sheet-input-group">
                         <label>Master Data:</label>
-                        <input type="text" id="sheet-at-nyc-master" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                        <div class="sheet-input-wrapper">
+                            <input type="text" id="sheet-at-nyc-master" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                            <button class="btn-edit-sheet" onclick="window.open('https://docs.google.com/spreadsheets/d/1VESJTgk580xYqZQVVIExZoM-PXr8NGICeoCH97B31Dk/edit?usp=sharing', '_blank')">✏️ Edit</button>
+                        </div>
                     </div>
                     <div class="sheet-input-group">
                         <label>Paid from NYC:</label>
-                        <input type="text" id="sheet-at-nyc-paid" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                        <div class="sheet-input-wrapper">
+                            <input type="text" id="sheet-at-nyc-paid" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                            <button class="btn-edit-sheet" onclick="window.open('https://docs.google.com/spreadsheets/d/1Yt0v_iNasHNkw7HGAbDauSQJDsSMNXV5cqVWHR7kdsQ/edit?usp=sharing', '_blank')">✏️ Edit</button>
+                        </div>
                     </div>
                     <div class="sheet-input-group">
                         <label>Payment Requests:</label>
-                        <input type="text" id="sheet-at-nyc-requests" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                        <div class="sheet-input-wrapper">
+                            <input type="text" id="sheet-at-nyc-requests" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                            <button class="btn-edit-sheet" onclick="window.open('https://docs.google.com/spreadsheets/d/1KujrwssmMwyb5AmsV2ajQRx-isOyD1_w_XmlQZhwccE/edit?usp=sharing', '_blank')">✏️ Edit</button>
+                        </div>
                     </div>
 
                     <h4 style="margin: 15px 0 10px 0; color: #1e3c72;">MBT Dataset</h4>
                     <div class="sheet-input-group">
                         <label>Master Data:</label>
-                        <input type="text" id="sheet-mbt-master" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                        <div class="sheet-input-wrapper">
+                            <input type="text" id="sheet-mbt-master" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                            <button class="btn-edit-sheet" onclick="window.open('https://docs.google.com/spreadsheets/d/16fIkcBGDHSKzMZM1FRvnjrUdD4bN9d5C0PhtiZf0bek/edit?usp=sharing', '_blank')">✏️ Edit</button>
+                        </div>
                     </div>
                     <div class="sheet-input-group">
                         <label>Paid from NYC:</label>
-                        <input type="text" id="sheet-mbt-paid" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                        <div class="sheet-input-wrapper">
+                            <input type="text" id="sheet-mbt-paid" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                            <button class="btn-edit-sheet" onclick="window.open('https://docs.google.com/spreadsheets/d/1N0r-9dGjEjli17Q6mPZEuwHzWEBq_B34yzIw0AjvTQc/edit?usp=sharing', '_blank')">✏️ Edit</button>
+                        </div>
                     </div>
                     <div class="sheet-input-group">
                         <label>Payment Requests:</label>
-                        <input type="text" id="sheet-mbt-requests" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                        <div class="sheet-input-wrapper">
+                            <input type="text" id="sheet-mbt-requests" placeholder="https://docs.google.com/..." onchange="saveSheetURLs()">
+                            <button class="btn-edit-sheet" onclick="window.open('https://docs.google.com/spreadsheets/d/1dQUngYZKnXDr1i4cOxbEuUsDX9I7vXpWns-8EH4vjyQ/edit?usp=sharing', '_blank')">✏️ Edit</button>
+                        </div>
                     </div>
 
                     <button class="btn btn-success" onclick="loadAllData()">Load All Data</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Export Modal -->
+    <div id="emailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📧 Export Summons for Email</h2>
+                <span class="close" onclick="closeEmailModal()">&times;</span>
+            </div>
+            <div id="emailModalBody">
+                <!-- Email groups will be dynamically inserted here -->
             </div>
         </div>
     </div>
@@ -2016,10 +2340,17 @@
             'ALL CITY METAL INC': 'ALL CITY METAL',
             'ALLNET TECHNOLOGY SOLUTION CORP': 'ALLNET TECHNOLOGY SOLUTION',
             'ALLNET TECHNOLOGY SOLUTION CORP.': 'ALLNET TECHNOLOGY SOLUTION',
+            'AMAZON LOGISTICS': 'AMAZON LOGISTICS',
             'AMAZON LOGISTICS INC': 'AMAZON LOGISTICS',
             'AMAZON LOGISTICS INC.': 'AMAZON LOGISTICS',
+            'AMAZON LOGISTICS LLC': 'AMAZON LOGISTICS',
+            
             'AMERICOLD': 'AMERICOLD',
             'AMERICOLD INC': 'AMERICOLD',
+            'AMERICOLD INC.': 'AMERICOLD',
+            'AMERICOLD LLC': 'AMERICOLD',
+            'AMERICOLD LOGISTICS': 'AMERICOLD',
+            'AMERICOLD LOGISTICS LLC': 'AMERICOLD',
             'BALDOR EXPRESS TRANSPORTATION CO': 'BALDOR EXPRESS TRANSPORTATION',
             'BALDOR EXPRESS TRANSPORTATION CO LLC': 'BALDOR EXPRESS TRANSPORTATION',
             'BARN RENTALS': 'BARN RENTALS',
@@ -2073,17 +2404,51 @@
             'DONNELLY MECHANICAL CORP': 'DONNELLY MECHANICAL',
             'DONNELLY MECHANICAL INC': 'DONNELLY MECHANICAL',
             'DRAIN KLEEN SEWER SERVICE INC': 'DRAIN KLEEN SEWER SERVICE',
-            'EAN HOLDINGS LLC': 'EAN HOLDINGS',
-            'EAN HOLDINGS, LLC': 'EAN HOLDINGS',
+            
+            // Budget Truck Rental variations (common rental company)
+            'BUDGET': 'BUDGET TRUCK RENTAL',
+            'BUDGET TRUCK RENTAL': 'BUDGET TRUCK RENTAL',
+            'BUDGET TRUCK RENTAL INC': 'BUDGET TRUCK RENTAL',
+            'BUDGET TRUCK RENTAL INC.': 'BUDGET TRUCK RENTAL',
+            'BUDGET TRUCK RENTAL LLC': 'BUDGET TRUCK RENTAL',
+            'BUDGET RENT A CAR': 'BUDGET TRUCK RENTAL',
+            
+            // Enterprise Rent-A-Car variations (EAN Holdings is Enterprise's parent company)
+            'EAN HOLDINGS': 'ENTERPRISE RENT-A-CAR',
+            'EAN HOLDINGS LLC': 'ENTERPRISE RENT-A-CAR',
+            'EAN HOLDINGS, LLC': 'ENTERPRISE RENT-A-CAR',
+            'ENTERPRISE': 'ENTERPRISE RENT-A-CAR',
+            'ENTERPRISE RENT-A-CAR': 'ENTERPRISE RENT-A-CAR',
+            'ENTERPRISE RENT-A-CAR CO': 'ENTERPRISE RENT-A-CAR',
+            'ENTERPRISE RENT-A-CAR COMPANY': 'ENTERPRISE RENT-A-CAR',
+            'ENTERPRISE LEASING': 'ENTERPRISE RENT-A-CAR',
+            'ENTERPRISE LEASING COMPANY': 'ENTERPRISE RENT-A-CAR',
+            
+            'EDGE AUTO': 'EDGE AUTO',
+            'EDGE AUTO': 'EDGE AUTO',
             'EDGE AUTO INC': 'EDGE AUTO',
             'EDGE AUTO INC.': 'EDGE AUTO',
-            'EDGE AUTO RENTAL': 'EDGE AUTO RENTAL',
+            'EDGE AUTO RENTAL': 'EDGE AUTO',
+            'EDGE AUTO RENTAL INC': 'EDGE AUTO',
+            'EDGE AUTO RENTAL INC.': 'EDGE AUTO',
+            
             'ELDORADO': 'ELDORADO',
-            'FEDERAL EXPRESS CORP': 'FEDERAL EXPRESS',
-            'FEDERAL EXPRESS CORPORATION': 'FEDERAL EXPRESS',
+            'ELDORADO INC': 'ELDORADO',
+            'ELDORADO INC.': 'ELDORADO',
+            // FIXED: All FedEx variations
+            'FEDERAL EXPRESS': 'FEDEX',
+            'FEDERAL EXPRESS CORP': 'FEDEX',
+            'FEDERAL EXPRESS CORP.': 'FEDEX',
+            'FEDERAL EXPRESS CORPORATION': 'FEDEX',
             'FEDEX': 'FEDEX',
+            'FEDEX CORP': 'FEDEX',
+            'FEDEX CORP.': 'FEDEX',
+            'FEDEX CORPORATION': 'FEDEX',
+            'FEDEX GROUND PACKAGE SYSTEM': 'FEDEX GROUND PACKAGE SYSTEM',
             'FEDEX GROUND PACKAGE SYSTEM INC': 'FEDEX GROUND PACKAGE SYSTEM',
             'FEDEX GROUND PACKAGE SYSTEM INC.': 'FEDEX GROUND PACKAGE SYSTEM',
+            
+            'FIRE RESPONSE': 'FIRE RESPONSE',
             'FIRE RESPONSE INC': 'FIRE RESPONSE',
             'FIRE RESPONSE INC.': 'FIRE RESPONSE',
             'FIRSTLINE LOCKSMITH': 'FIRSTLINE LOCKSMITH',
@@ -2142,9 +2507,17 @@
             'NEPTUNE MACHINE': 'NEPTUNE MACHINE',
             'NEPTUNE MACHINE INC': 'NEPTUNE MACHINE',
             'NOUVEAU ELEVATOR': 'NOUVEAU ELEVATOR',
-            'PENSKE LEASING & RENTAL CO': 'PENSKE LEASING RENTAL',
-            'PENSKE LEASING & RENTAL CO.': 'PENSKE LEASING RENTAL',
+            
+            // FIXED: All Penske variations now map to one name
+            'PENSKE LEASING & RENTAL CO': 'PENSKE TRUCK LEASING',
+            'PENSKE LEASING & RENTAL CO.': 'PENSKE TRUCK LEASING',
+            'PENSKE TRUCK LEASING': 'PENSKE TRUCK LEASING',
+            'PENSKE TRUCK LEASING CO LP': 'PENSKE TRUCK LEASING',
+            'PENSKE TRUCK LEASING CO. LP': 'PENSKE TRUCK LEASING',
             'PENSKE TRUCK LEASING CORPORATION': 'PENSKE TRUCK LEASING',
+            'PENSKE TRUCK LEASING CORP': 'PENSKE TRUCK LEASING',
+            'PENSKE TRUCK LEASING CORP.': 'PENSKE TRUCK LEASING',
+            
             'PIECE OF CAKE MOVING + STORAGE': 'PIECE OF CAKE MOVING + STORAGE',
             'PIECE OF CAKE MOVING + STORAGE LLC': 'PIECE OF CAKE MOVING + STORAGE',
             'PINK PINK TRADING INC': 'PINK PINK TRADING',
@@ -2194,6 +2567,16 @@
             'UHAUL': 'UHAUL',
             'UNITED VAN LINES': 'UNITED VAN LINES',
             'UNITED VAN LINES LLC': 'UNITED VAN LINES',
+            
+            // UPS variations (commonly seen)
+            'UPS': 'UPS',
+            'UNITED PARCEL SERVICE': 'UPS',
+            'UNITED PARCEL SERVICE INC': 'UPS',
+            'UNITED PARCEL SERVICE INC.': 'UPS',
+            'UNITED PARCEL SERVICE OF AMERICA': 'UPS',
+            'UNITED PARCEL SERVICE OF AMERICA INC': 'UPS',
+            'UNITED PARCEL SERVICE OF AMERICA INC.': 'UPS',
+            
             'UPRIGHT INSTALLATIONS': 'UPRIGHT INSTALLATIONS',
             'UPRIGHT INSTALLATIONS INC': 'UPRIGHT INSTALLATIONS',
             'UTF TRUCKING': 'UTF TRUCKING',
@@ -2337,8 +2720,18 @@
         }
 
         async function fetchWithCORS(url) {
+            // Add cache-busting parameter to force fresh data
+            const cacheBuster = `_=${Date.now()}`;
+            const urlWithCacheBuster = url.includes('?') ? `${url}&${cacheBuster}` : `${url}?${cacheBuster}`;
+            
             try {
-                const response = await fetch(url);
+                const response = await fetch(urlWithCacheBuster, {
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
+                    }
+                });
                 if (response.ok) {
                     return await response.text();
                 }
@@ -2347,13 +2740,19 @@
             }
 
             const corsProxies = [
-                `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+                `https://corsproxy.io/?${encodeURIComponent(urlWithCacheBuster)}`,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(urlWithCacheBuster)}`
             ];
 
             for (const proxyUrl of corsProxies) {
                 try {
-                    const response = await fetch(proxyUrl);
+                    const response = await fetch(proxyUrl, {
+                        cache: 'no-store',
+                        headers: {
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache'
+                        }
+                    });
                     if (response.ok) {
                         return await response.text();
                     }
@@ -2948,20 +3347,65 @@
             }
 
             const paidMap = {};
-            paid.forEach(row => {
+            // Debug: Log the first few paid rows to see column names
+            if (paid.length > 0) {
+                console.log('Paid sheet column names:', Object.keys(paid[0]));
+                console.log('Total rows in paid sheet:', paid.length);
+                // Find first non-empty row
+                const firstNonEmpty = paid.find(row => {
+                    const summonsNum = row['Summons #'] || row['Summons Number'];
+                    return summonsNum && summonsNum.trim();
+                });
+                if (firstNonEmpty) {
+                    console.log('First non-empty paid row:', firstNonEmpty);
+                }
+            }
+            
+            paid.forEach((row, index) => {
                 const summonsNum = row['Summons #'] || row['Summons Number'];
-                if (summonsNum) paidMap[summonsNum.trim()] = row;
+                if (summonsNum && summonsNum.trim()) {
+                    const trimmed = summonsNum.trim();
+                    paidMap[trimmed] = row;
+                    // Debug logging for specific summons
+                    if (trimmed === '000879806R') {
+                        console.log(`Found 000879806R in paid sheet at row ${index}:`, row);
+                    }
+                }
             });
+            
+            console.log(`${tab} - Paid map has ${Object.keys(paidMap).length} entries`);
+            console.log(`${tab} - Checking if 000879806R is in paidMap:`, !!paidMap['000879806R']);
 
             const requestsMap = {};
+            // Debug: Log the first requests row to see column names
+            if (requests.length > 0) {
+                console.log('Requests sheet column names:', Object.keys(requests[0]));
+            }
+            
             requests.forEach(row => {
                 const summonsNum = row['Complaint Number'] || row['Summons Number'];
                 if (summonsNum) requestsMap[summonsNum.trim()] = row;
             });
+            
+            console.log(`${tab} - Requests map has ${Object.keys(requestsMap).length} entries`);
 
             const merged = master.map(row => {
                 const summonsNum = (row['Summons Number'] || '').trim();
                 const newRow = { ...row };
+                
+                // Debug logging for specific summons
+                if (summonsNum === '000879806R') {
+                    console.log('=== Processing 000879806R ===');
+                    console.log('In paidMap:', !!paidMap[summonsNum]);
+                    console.log('In requestsMap:', !!requestsMap[summonsNum]);
+                    if (paidMap[summonsNum]) {
+                        console.log('Paid row data:', paidMap[summonsNum]);
+                    }
+                    if (requestsMap[summonsNum]) {
+                        console.log('Request row data:', requestsMap[summonsNum]);
+                    }
+                    console.log('Master row:', row);
+                }
                 
                 // Normalize company name for consistent grouping
                 if (newRow['Company Name']) {
@@ -2971,18 +3415,16 @@
                 if (!newRow['Paid Amount']) newRow['Paid Amount'] = '';
                 if (!newRow['Hearing Status']) newRow['Hearing Status'] = '';
 
-                // Check if status is "Submitted" - set initially but can be overridden
+                // Check if status is "Submitted" - will be used later
                 const status = (row['Status'] || '').toLowerCase();
                 const isSubmitted = status === 'submitted';
-                
-                if (isSubmitted) {
-                    newRow['_rowType'] = 'submitted';
-                }
 
                 if (summonsNum && paidMap[summonsNum]) {
-                    // Only override submitted if it's not submitted
-                    if (!isSubmitted) {
-                        newRow['_rowType'] = 'paid';
+                    // If it's in the paid sheet, it should always be marked as paid
+                    newRow['_rowType'] = 'paid';
+                    
+                    if (summonsNum === '000879806R') {
+                        console.log('Setting 000879806R as PAID');
                     }
                     
                     const paidRow = paidMap[summonsNum];
@@ -2994,9 +3436,11 @@
                     
                     newRow['Payment Status'] = 'PAID TO ME';
                 } else if (summonsNum && requestsMap[summonsNum]) {
-                    // Only override submitted if it's not submitted
-                    if (!isSubmitted) {
-                        newRow['_rowType'] = 'requested';
+                    // If it's in the requests sheet, mark as requested
+                    newRow['_rowType'] = 'requested';
+                    
+                    if (summonsNum === '000879806R') {
+                        console.log('Setting 000879806R as REQUESTED (not found in paid map)');
                     }
                     
                     Object.keys(requestsMap[summonsNum]).forEach(key => {
@@ -3005,14 +3449,24 @@
                         }
                     });
                     newRow['Payment Status'] = 'REQUESTED';
+                } else if (isSubmitted) {
+                    // Only mark as submitted if it's not in paid or requested sheets
+                    newRow['_rowType'] = 'submitted';
                 }
                 
-                // Check for dismissed or disqualified status - dismissed takes priority
+                // Check for dismissed or disqualified status - but DON'T override paid status
                 const hearingResult = (row['Hearing Result'] || newRow['Hearing Result'] || '').toLowerCase();
-                if (hearingResult.includes('dismissed')) {
+                const isPaid = newRow['_rowType'] === 'paid';
+                
+                if (hearingResult.includes('dismissed') && !isPaid) {
                     newRow['_rowType'] = 'dismissed';
-                } else if (status.includes('disqualified')) {
+                } else if (status.includes('disqualified') && !isPaid) {
                     newRow['_rowType'] = 'disqualified';
+                }
+                
+                if (summonsNum === '000879806R') {
+                    console.log('Final _rowType for 000879806R:', newRow['_rowType']);
+                    console.log('===========================');
                 }
 
                 return newRow;
@@ -3178,11 +3632,16 @@
 
             tbody.innerHTML = pageData.map(row => {
                 let rowClass = '';
+                
+                // Check if NYC data has been received (check for key NYC fields)
+                const hasNYCData = row['Hearing Status'] || row['Paid Amount'] || row['Hearing Date'];
+                
                 if (row['_rowType'] === 'paid') rowClass = 'row-green';
                 else if (row['_rowType'] === 'requested') rowClass = 'row-yellow';
                 else if (row['_rowType'] === 'dismissed') rowClass = 'row-dismissed'; // Darker red for dismissed
                 else if (row['_rowType'] === 'disqualified') rowClass = 'row-red';
                 else if (row['_rowType'] === 'submitted') rowClass = 'row-gray';
+                else if (!hasNYCData) rowClass = 'row-light-blue'; // Light blue for no NYC data yet
 
                 return '<tr class="' + rowClass + '">' + columns.map(col => {
                     let value = row[col] || '';
@@ -3462,7 +3921,214 @@
 
         function refreshNewMoney() {
             loadAllData(true);
-            setTimeout(renderNewMoney, 2000);
+            setTimeout(() => {
+                renderNewMoney();
+                renderPendingPayments();
+            }, 2000);
+        }
+
+        function renderPendingPayments() {
+            const allPendingTotals = { count: 0, amount: 0 };
+            
+            ['at', 'at-nyc', 'mbt'].forEach(tab => {
+                const data = appData[tab].merged;
+                
+                // Filter for requested but not yet paid
+                const pendingData = data.filter(row => {
+                    const paymentStatus = (row['Payment Status'] || '').trim();
+                    return paymentStatus === 'REQUESTED';
+                });
+
+                const thead = document.getElementById(`pending-${tab}-thead`);
+                const tbody = document.getElementById(`pending-${tab}-tbody`);
+                const totalsDiv = document.getElementById(`pending-${tab}-totals`);
+
+                if (pendingData.length === 0) {
+                    thead.innerHTML = '';
+                    tbody.innerHTML = '<tr><td colspan="100" style="text-align: center;">✅ No pending requests!</td></tr>';
+                    totalsDiv.innerHTML = '💰 Expected: $0.00';
+                    return;
+                }
+
+                // Parse and sort pending data
+                const parsedPendingData = pendingData.map(row => {
+                    const requestDateRaw = row['Payment Request Email'] || row['Request Date'] || '';
+                    let sequenceNum = 0;
+                    let dateOnly = requestDateRaw;
+                    
+                    // Check for sequence number - handle both "- #3" and "- 3" formats
+                    const seqMatch = requestDateRaw.match(/(.+?)\s*-\s*#?(\d+)/);
+                    if (seqMatch) {
+                        dateOnly = seqMatch[1].trim();
+                        sequenceNum = parseInt(seqMatch[2]);
+                    }
+                    
+                    return {
+                        ...row,
+                        _requestDateRaw: requestDateRaw,
+                        _dateOnly: dateOnly,
+                        _sequenceNum: sequenceNum
+                    };
+                });
+
+                // Sort by date (most recent first), then by sequence number (earlier numbers first)
+                parsedPendingData.sort((a, b) => {
+                    const dateA = parseDateForSorting(a._dateOnly);
+                    const dateB = parseDateForSorting(b._dateOnly);
+                    
+                    if (dateA && dateB) {
+                        if (dateA.getTime() !== dateB.getTime()) {
+                            return dateB - dateA; // Most recent first
+                        }
+                        // Same date, sort by sequence number (lower numbers first)
+                        return a._sequenceNum - b._sequenceNum;
+                    }
+                    return 0;
+                });
+
+                // Define simplified columns
+                thead.innerHTML = `
+                    <tr>
+                        <th>Summons Number</th>
+                        <th>Company Name</th>
+                        <th>Expected Amount</th>
+                        <th>Date Requested</th>
+                        <th>Days Since Request</th>
+                    </tr>
+                `;
+                
+                tbody.innerHTML = parsedPendingData.map(row => {
+                    const summonsNum = row['Summons Number'] || '';
+                    const companyName = row['Company Name'] || '';
+                    const paidAmount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                    const expectedAmount = paidAmount * 0.25;
+                    
+                    let requestDate = row._dateOnly;
+                    let daysSince = 'N/A';
+                    let displayDate = row._requestDateRaw; // Show original with sequence number
+                    
+                    if (requestDate) {
+                        const result = parseRequestDate(requestDate);
+                        if (result) {
+                            displayDate = result.displayDate + (row._sequenceNum > 0 ? ` - #${row._sequenceNum}` : '');
+                            daysSince = result.daysSince;
+                        }
+                    }
+
+                    // Add to overall totals
+                    if (!isNaN(expectedAmount)) {
+                        allPendingTotals.amount += expectedAmount;
+                        allPendingTotals.count++;
+                    }
+
+                    // Color code days
+                    let daysClass = '';
+                    if (typeof daysSince === 'number') {
+                        if (daysSince > 60) daysClass = 'style="color: #e74c3c; font-weight: bold;"'; // Red for >60 days
+                        else if (daysSince > 30) daysClass = 'style="color: #f39c12; font-weight: bold;"'; // Orange for >30 days
+                        else daysClass = 'style="color: #27ae60; font-weight: bold;"'; // Green for <=30 days
+                    }
+
+                    return `
+                        <tr>
+                            <td>${summonsNum}</td>
+                            <td>${companyName}</td>
+                            <td>$${expectedAmount.toFixed(2)}</td>
+                            <td>${displayDate}</td>
+                            <td ${daysClass}>${daysSince}${typeof daysSince === 'number' ? ' days' : ''}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Calculate totals for this dataset
+                let totalExpected = 0;
+                parsedPendingData.forEach(row => {
+                    const amount = parseFloat((row['Paid Amount'] || '').replace(/[$,]/g, ''));
+                    if (!isNaN(amount)) {
+                        totalExpected += amount * 0.25;
+                    }
+                });
+
+                totalsDiv.innerHTML = `
+                    ⏳ Expected: $${totalExpected.toFixed(2)} | Count: ${parsedPendingData.length}
+                `;
+            });
+
+            // Update overall total at the top of the section
+            const overallTotalDiv = document.getElementById('pending-overall-total');
+            if (overallTotalDiv) {
+                overallTotalDiv.innerHTML = `
+                    <div style="background: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h3 style="margin: 0 0 10px 0; color: #2c3e50;">💰 Overall Pending Total</h3>
+                        <div style="font-size: 1.8em; font-weight: bold; color: #f39c12;">$${allPendingTotals.amount.toFixed(2)}</div>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">${allPendingTotals.count} summonses across all datasets</div>
+                    </div>
+                `;
+            }
+        }
+
+        function parseRequestDate(dateStr) {
+            try {
+                let parsedDate;
+                const today = new Date();
+                
+                // Handle M/D/YY format (like "8/18/25")
+                if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)) {
+                    const parts = dateStr.split('/');
+                    const month = parseInt(parts[0]);
+                    const day = parseInt(parts[1]);
+                    const yearShort = parseInt(parts[2]);
+                    const year = 2000 + yearShort;
+                    
+                    parsedDate = new Date(year, month - 1, day);
+                }
+                // Handle M/D format (like "9/17") - use most recent year with that month
+                else if (dateStr.match(/^\d{1,2}\/\d{1,2}$/)) {
+                    const parts = dateStr.split('/');
+                    const month = parseInt(parts[0]);
+                    const day = parseInt(parts[1]);
+                    
+                    // Start with current year
+                    let year = today.getFullYear();
+                    parsedDate = new Date(year, month - 1, day);
+                    
+                    // If this date hasn't occurred yet this year, it must be from this year
+                    // (we assume it's the most recent occurrence)
+                    if (parsedDate > today) {
+                        // Date is in the future, so it must have been from a previous occurrence
+                        // But since we want the most recent year with that month, and it hasn't 
+                        // happened yet this year, keep it as this year
+                        // Actually, if it's in the future, it can't be a request date, so use last year
+                        year = year - 1;
+                        parsedDate = new Date(year, month - 1, day);
+                    }
+                }
+                // Try standard formats
+                else {
+                    parsedDate = new Date(dateStr);
+                }
+                
+                if (parsedDate && !isNaN(parsedDate.getTime())) {
+                    const diffTime = today - parsedDate;
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    const displayDate = `${parsedDate.getMonth() + 1}/${parsedDate.getDate()}/${parsedDate.getFullYear()}`;
+                    
+                    return {
+                        displayDate: displayDate,
+                        daysSince: diffDays,
+                        parsedDate: parsedDate
+                    };
+                }
+            } catch (e) {
+                console.log('Error parsing date:', dateStr, e);
+            }
+            return null;
+        }
+
+        function parseDateForSorting(dateStr) {
+            const result = parseRequestDate(dateStr);
+            return result ? result.parsedDate : null;
         }
 
         function generateFunFacts() {
@@ -3540,18 +4206,18 @@
                 });
             }
 
-            // 5. Money Still in Pipeline (show 25% expected from requested amounts)
+            // 5. Money Still in Pipeline
             const requestedCount = allData.filter(row => row['_rowType'] === 'requested').length;
             let requestedAmount = 0;
             allData.filter(row => row['_rowType'] === 'requested').forEach(row => {
                 const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
                 if (!isNaN(amount)) requestedAmount += amount;
             });
-            const yourRequestedShare = requestedAmount * 0.25 * 0.25; // 25% of amount, expecting 25% payment rate
+            const yourRequestedShare = requestedAmount * 0.25; // Your full 25% share
             if (requestedCount > 0) {
                 facts.push({
                     title: '⏳ Money in Pipeline',
-                    description: `You have ${requestedCount} payment requests pending worth approximately $${yourRequestedShare.toFixed(2)} to you (assuming 25% payment rate)`
+                    description: `You have ${requestedCount} payment requests pending worth $${yourRequestedShare.toFixed(2)} to you - checks should arrive in 4-12 weeks!`
                 });
             }
 
@@ -3689,32 +4355,23 @@
 
             // GEOGRAPHIC & TIMING PATTERNS
 
-            // 14. Best Borough
-            const boroughStats = {};
-            allData.forEach(row => {
+            // 14. Most Profitable Borough
+            const boroughRevenue = {};
+            allData.filter(row => row['_rowType'] === 'paid' || row['_rowType'] === 'requested').forEach(row => {
                 const borough = row['Violation Location (Borough)'] || 'Unknown';
-                if (!boroughStats[borough]) {
-                    boroughStats[borough] = { total: 0, paid: 0 };
-                }
-                boroughStats[borough].total++;
-                if (row['_rowType'] === 'paid') boroughStats[borough].paid++;
-                else if (row['_rowType'] === 'requested') boroughStats[borough].paid += 0.25;
-            });
-            let bestBorough = null;
-            let bestBoroughRate = 0;
-            Object.keys(boroughStats).forEach(borough => {
-                if (boroughStats[borough].total >= 5) {
-                    const rate = (boroughStats[borough].paid / boroughStats[borough].total) * 100;
-                    if (rate > bestBoroughRate) {
-                        bestBoroughRate = rate;
-                        bestBorough = borough;
-                    }
+                const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                if (!isNaN(amount)) {
+                    boroughRevenue[borough] = (boroughRevenue[borough] || 0) + amount;
                 }
             });
-            if (bestBorough && bestBorough !== 'Unknown') {
+            const sortedBoroughs = Object.entries(boroughRevenue).sort((a, b) => b[1] - a[1]);
+            if (sortedBoroughs.length > 0 && sortedBoroughs[0][0] !== 'Unknown') {
+                const topBorough = sortedBoroughs[0][0];
+                const revenue = sortedBoroughs[0][1] * 0.25;
+                const count = allData.filter(row => row['Violation Location (Borough)'] === topBorough).length;
                 facts.push({
-                    title: '🗺️ Best Borough',
-                    description: `${bestBorough} violations are ${bestBoroughRate.toFixed(0)}% more likely to pay than other boroughs - focus your efforts here!`
+                    title: '🗺️ Most Profitable Borough',
+                    description: `${topBorough} has generated $${revenue.toFixed(2)} for you from ${count} violations - your money-maker location!`
                 });
             }
 
@@ -3738,53 +4395,28 @@
                 });
             }
 
-            // 16. Day of Week Success
-            const dowStats = {};
-            allData.forEach(row => {
-                const date = new Date(row['Violation Date']);
-                if (!isNaN(date.getTime())) {
-                    const dow = date.getDay();
-                    if (!dowStats[dow]) dowStats[dow] = { total: 0, paid: 0 };
-                    dowStats[dow].total++;
-                    if (row['_rowType'] === 'paid') dowStats[dow].paid++;
-                    else if (row['_rowType'] === 'requested') dowStats[dow].paid += 0.25;
-                }
-            });
-            let bestDOW = null;
-            let bestDOWRate = 0;
-            Object.keys(dowStats).forEach(dow => {
-                if (dowStats[dow].total >= 10) {
-                    const rate = (dowStats[dow].paid / dowStats[dow].total) * 100;
-                    if (rate > bestDOWRate) {
-                        bestDOWRate = rate;
-                        bestDOW = dow;
+            // 15. Seasonal Patterns
+            const locationRevenue = {};
+            const locationCounts = {};
+            allData.filter(row => row['_rowType'] === 'paid' || row['_rowType'] === 'requested').forEach(row => {
+                const street = row['Violation Location (Street Name)'] || row['Place of Occurrence'] || 'Unknown';
+                if (street && street !== 'Unknown') {
+                    const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                    if (!isNaN(amount)) {
+                        locationRevenue[street] = (locationRevenue[street] || 0) + amount;
+                        locationCounts[street] = (locationCounts[street] || 0) + 1;
                     }
                 }
             });
-            if (bestDOW !== null) {
-                const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const sortedLocations = Object.entries(locationRevenue).sort((a, b) => b[1] - a[1]);
+            if (sortedLocations.length > 0 && locationCounts[sortedLocations[0][0]] >= 3) {
+                const hotZone = sortedLocations[0][0];
+                const revenue = sortedLocations[0][1] * 0.25;
+                const count = locationCounts[hotZone];
                 facts.push({
-                    title: '📆 Lucky Day',
-                    description: `Violations on ${dayNames[bestDOW]} have the highest success rate at ${bestDOWRate.toFixed(0)}% - your lucky day!`
+                    title: '🔥 Most Profitable Location',
+                    description: `${hotZone} has generated $${revenue.toFixed(2)} from ${count} violations - your golden hunting ground!`
                 });
-            }
-
-            // 17. Hot Zone
-            const locationCounts = {};
-            allData.forEach(row => {
-                const street = row['Violation Location (Street Name)'] || row['Place of Occurrence'] || 'Unknown';
-                if (street && street !== 'Unknown') {
-                    locationCounts[street] = (locationCounts[street] || 0) + 1;
-                }
-            });
-            if (Object.keys(locationCounts).length > 0) {
-                const hotZone = Object.keys(locationCounts).reduce((a, b) => locationCounts[a] > locationCounts[b] ? a : b);
-                if (locationCounts[hotZone] >= 5) {
-                    facts.push({
-                        title: '🔥 Hot Zone',
-                        description: `${hotZone} has the most violations (${locationCounts[hotZone]} total) - your prime hunting ground!`
-                    });
-                }
             }
 
             // ACTIONABLE INSIGHTS
@@ -3848,30 +4480,9 @@
                 });
             }
 
-            // 21. Payment Velocity by Quarter
-            const q1Data = allData.filter(row => {
-                const date = new Date(row['Date Submitted']);
-                return !isNaN(date.getTime()) && date.getMonth() < 3;
-            });
-            const q1Paid = q1Data.filter(row => row['_rowType'] === 'paid').length;
-            const q4Data = allData.filter(row => {
-                const date = new Date(row['Date Submitted']);
-                return !isNaN(date.getTime()) && date.getMonth() >= 9;
-            });
-            const q4Paid = q4Data.filter(row => row['_rowType'] === 'paid').length;
-            if (q1Data.length >= 10 && q4Data.length >= 10) {
-                const q1Rate = (q1Paid / q1Data.length * 100).toFixed(0);
-                const q4Rate = (q4Paid / q4Data.length * 100).toFixed(0);
-                const better = q1Rate > q4Rate ? 'Q1' : 'Q4';
-                facts.push({
-                    title: '📈 Best Quarter',
-                    description: `Violations submitted in ${better} are more likely to pay (${better === 'Q1' ? q1Rate : q4Rate}% vs ${better === 'Q1' ? q4Rate : q1Rate}%)`
-                });
-            }
-
             // INTERESTING PATTERNS
 
-            // 22. Busiest Time of Day
+            // 21. Busiest Time of Day
             const hourCounts = {};
             allData.forEach(row => {
                 const time = row['Violation Time'];
@@ -3892,22 +4503,31 @@
                 });
             }
 
-            // 23. Company Size Analysis
-            const smallCompanies = Object.keys(companyCounts).filter(c => companyCounts[c] <= 3);
-            const largeCompanies = Object.keys(companyCounts).filter(c => companyCounts[c] > 10);
-            if (smallCompanies.length > 0 && largeCompanies.length > 0) {
-                const smallCompanyData = allData.filter(row => smallCompanies.includes(row['Company Name']));
-                const largeCompanyData = allData.filter(row => largeCompanies.includes(row['Company Name']));
-                const smallPaidRate = (smallCompanyData.filter(r => r['_rowType'] === 'paid').length / smallCompanyData.length * 100).toFixed(0);
-                const largePaidRate = (largeCompanyData.filter(r => r['_rowType'] === 'paid').length / largeCompanyData.length * 100).toFixed(0);
-                const better = smallPaidRate > largePaidRate ? 'Small' : 'Large';
+            // 22. Payment Request Backlog Alert (CRITICAL!)
+            const newMoneyCount = allData.filter(row => {
+                const hearingStatus = (row['Hearing Status'] || '').toLowerCase();
+                const paymentStatus = (row['Payment Status'] || '').trim();
+                return hearingStatus === 'paid in full' && !paymentStatus;
+            }).length;
+            let newMoneyValue = 0;
+            allData.filter(row => {
+                const hearingStatus = (row['Hearing Status'] || '').toLowerCase();
+                const paymentStatus = (row['Payment Status'] || '').trim();
+                return hearingStatus === 'paid in full' && !paymentStatus;
+            }).forEach(row => {
+                const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                if (!isNaN(amount)) newMoneyValue += amount;
+            });
+            const yourNewMoney = newMoneyValue * 0.25;
+            if (newMoneyCount > 0) {
+                const urgency = newMoneyCount > 20 ? '🚨 URGENT!' : newMoneyCount > 10 ? '⚠️ Important!' : '✅ On track';
                 facts.push({
-                    title: '🏢 Company Size Pattern',
-                    description: `${better} companies pay more reliably (${better === 'Small' ? smallPaidRate : largePaidRate}% vs ${better === 'Small' ? largePaidRate : smallPaidRate}%)`
+                    title: '💸 Payment Request Backlog',
+                    description: `${urgency} You have ${newMoneyCount} violations worth $${yourNewMoney.toFixed(2)} ready to request - money sitting on the table!`
                 });
             }
 
-            // 24. Hearing Success Rate
+            // 23. Default vs Contested Cases
             const hearingCases = allData.filter(row => row['Hearing Result'] && row['Hearing Result'].trim() !== '');
             const hearingPaid = hearingCases.filter(row => row['_rowType'] === 'paid').length;
             const noHearingCases = allData.filter(row => !row['Hearing Result'] || row['Hearing Result'].trim() === '');
@@ -3915,10 +4535,32 @@
             if (hearingCases.length >= 10 && noHearingCases.length >= 10) {
                 const hearingRate = (hearingPaid / hearingCases.length * 100).toFixed(0);
                 const noHearingRate = (noHearingPaid / noHearingCases.length * 100).toFixed(0);
-                const better = hearingRate > noHearingRate ? 'with hearings' : 'without hearings';
+                const better = hearingRate > noHearingRate ? 'contested and won' : 'defaulted';
+                const betterRate = better === 'contested and won' ? hearingRate : noHearingRate;
+                const worseRate = better === 'contested and won' ? noHearingRate : hearingRate;
                 facts.push({
-                    title: '⚖️ Hearing Impact',
-                    description: `Cases ${better} have a ${better === 'with hearings' ? hearingRate : noHearingRate}% success rate vs ${better === 'with hearings' ? noHearingRate : hearingRate}% - ${better === 'with hearings' ? 'fighting helps!' : 'settle early works better!'}`
+                    title: '⚖️ Default vs Contested',
+                    description: `Cases that are ${better} have a ${betterRate}% success rate vs ${worseRate}% - companies that don't show up ${noHearingRate > hearingRate ? 'pay more often!' : 'actually fight less!'}`
+                });
+            }
+
+            // 24. Repeat Target Opportunities
+            const recentCompanyViolations = {};
+            const threeMonthsAgo = new Date();
+            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+            allData.filter(row => {
+                const violationDate = new Date(row['Violation Date']);
+                return !isNaN(violationDate.getTime()) && violationDate > threeMonthsAgo;
+            }).forEach(row => {
+                const company = normalizeCompanyName(row['Company Name'] || 'Unknown');
+                recentCompanyViolations[company] = (recentCompanyViolations[company] || 0) + 1;
+            });
+            const repeatTargets = Object.entries(recentCompanyViolations).filter(([_, count]) => count >= 3).sort((a, b) => b[1] - a[1]);
+            if (repeatTargets.length > 0) {
+                const topTarget = repeatTargets[0];
+                facts.push({
+                    title: '🎯 Repeat Target Alert',
+                    description: `You've caught ${topTarget[0]} ${topTarget[1]} times in the last 3 months - they haven't learned! Go back to that location!`
                 });
             }
 
@@ -3933,31 +4575,61 @@
                 });
             }
 
-            // 26. Collection Improvement
-            const dates = allData.map(row => new Date(row['Violation Date'])).filter(d => !isNaN(d.getTime())).sort((a, b) => a - b);
-            if (dates.length > 50) {
-                const midpoint = Math.floor(dates.length / 2);
-                const midDate = dates[midpoint];
-                const oldData = allData.filter(row => {
-                    const d = new Date(row['Violation Date']);
-                    return !isNaN(d.getTime()) && d < midDate;
+            // 26. Payment Aging Report (CRITICAL!)
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const sixtyDaysAgo = new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000);
+            const ninetyDaysAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+            
+            const requestedAging = { '0-30': 0, '31-60': 0, '61-90': 0, '90+': 0 };
+            allData.filter(row => row['_rowType'] === 'requested').forEach(row => {
+                const requestDate = new Date(row['Payment Request Email'] || row['Request Date']);
+                if (!isNaN(requestDate.getTime())) {
+                    const daysSince = Math.floor((today - requestDate) / (1000 * 60 * 60 * 24));
+                    if (daysSince <= 30) requestedAging['0-30']++;
+                    else if (daysSince <= 60) requestedAging['31-60']++;
+                    else if (daysSince <= 90) requestedAging['61-90']++;
+                    else requestedAging['90+']++;
+                }
+            });
+            
+            if (requestedAging['90+'] > 0) {
+                facts.push({
+                    title: '🚨 Overdue Payments Alert',
+                    description: `${requestedAging['90+']} payment requests are 90+ days old! Time to chase OATH aggressively. (${requestedAging['61-90']} at 61-90 days, ${requestedAging['31-60']} at 31-60 days, ${requestedAging['0-30']} under 30 days)`
                 });
-                const newData = allData.filter(row => {
-                    const d = new Date(row['Violation Date']);
-                    return !isNaN(d.getTime()) && d >= midDate;
+            } else if (requestedAging['61-90'] > 0) {
+                facts.push({
+                    title: '⚠️ Payment Aging Status',
+                    description: `${requestedAging['61-90']} requests aging 61-90 days (approaching overdue). ${requestedAging['31-60']} at 31-60 days, ${requestedAging['0-30']} under 30 days.`
                 });
-                const oldRate = (oldData.filter(r => r['_rowType'] === 'paid').length / oldData.length * 100).toFixed(1);
-                const newRate = (newData.filter(r => r['_rowType'] === 'paid').length / newData.length * 100).toFixed(1);
-                const change = (newRate - oldRate).toFixed(1);
-                if (Math.abs(change) > 1) {
+            }
+
+            // 27. Performance Trend (Only Completed Cases)
+            const completedCases = allData.filter(row => 
+                row['_rowType'] === 'paid' || row['_rowType'] === 'disqualified' || row['_rowType'] === 'dismissed'
+            ).sort((a, b) => {
+                const dateA = new Date(a['Violation Date']);
+                const dateB = new Date(b['Violation Date']);
+                return dateA - dateB;
+            });
+            
+            if (completedCases.length > 100) {
+                const midpoint = Math.floor(completedCases.length / 2);
+                const oldCompleted = completedCases.slice(0, midpoint);
+                const newCompleted = completedCases.slice(midpoint);
+                const oldWinRate = (oldCompleted.filter(r => r['_rowType'] === 'paid').length / oldCompleted.length * 100).toFixed(1);
+                const newWinRate = (newCompleted.filter(r => r['_rowType'] === 'paid').length / newCompleted.length * 100).toFixed(1);
+                const change = (newWinRate - oldWinRate).toFixed(1);
+                if (Math.abs(change) > 2) {
                     facts.push({
                         title: '📊 Performance Trend',
-                        description: `Your collection rate has ${change > 0 ? 'improved' : 'decreased'} ${Math.abs(change)}% over time - ${change > 0 ? 'keep it up!' : 'time to revisit your strategy'}`
+                        description: `Your win rate has ${change > 0 ? 'improved' : 'decreased'} ${Math.abs(change)}% (first ${midpoint} resolved cases vs last ${completedCases.length - midpoint}) - ${change > 0 ? 'you\'re getting better!' : 'time to revisit your strategy'}`
                     });
                 }
             }
 
-            // 27. Revenue Concentration Analysis
+            // 28. Revenue Concentration Analysis
             const revenueByCompany = {};
             allData.filter(row => row['_rowType'] === 'paid').forEach(row => {
                 const company = normalizeCompanyName(row['Company Name'] || 'Unknown');
@@ -3981,13 +4653,40 @@
                 });
             }
 
-            // Render all facts
-            container.innerHTML = facts.map(fact => `
-                <div style="background: white; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">${fact.title}</h4>
-                    <p style="color: #2c3e50; line-height: 1.5; font-size: 0.9em;">${fact.description}</p>
-                </div>
-            `).join('');
+            // Render all facts with festive, party-like styling
+            const festiveColors = [
+                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', // Purple
+                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', // Pink
+                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', // Blue
+                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', // Green
+                'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', // Pink-Yellow
+                'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', // Teal-Purple
+                'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', // Pastel
+                'linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%)', // Orange-Pink
+                'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)', // Light Purple-Blue
+                'linear-gradient(135deg, #fdcbf1 0%, #e6dee9 100%)'  // Soft Pink
+            ];
+            
+            container.innerHTML = facts.map((fact, index) => {
+                const gradient = festiveColors[index % festiveColors.length];
+                return `
+                    <div style="background: ${gradient}; padding: 20px; border-radius: 12px; box-shadow: 0 6px 12px rgba(0,0,0,0.15); transform: scale(1); transition: transform 0.3s ease;">
+                        <h4 style="color: white; margin-bottom: 12px; font-size: 1.2em; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-weight: bold;">🎉 ${fact.title}</h4>
+                        <p style="color: white; line-height: 1.6; font-size: 1em; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">✨ ${fact.description}</p>
+                    </div>
+                `;
+            }).join('');
+            
+            // Add hover effect with inline event listeners
+            const factCards = container.querySelectorAll('div');
+            factCards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'scale(1.05)';
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'scale(1)';
+                });
+            });
         }
 
         // ===== ADVANCED INSIGHTS FUNCTIONS =====
@@ -7339,6 +8038,252 @@
             } catch (e) {
                 console.error('Error loading from localStorage:', e);
             }
+        }
+
+        // Email Export Functions
+        function showEmailExportModal(dataset) {
+            const modal = document.getElementById('emailModal');
+            const modalBody = document.getElementById('emailModalBody');
+            
+            // Get new money data for this dataset
+            const newMoneyData = getNewMoneyData(dataset);
+            
+            if (newMoneyData.length === 0) {
+                alert('No new money summonses found for this dataset.');
+                return;
+            }
+
+            // Get vendor info based on dataset
+            const vendorInfo = getVendorInfo(dataset);
+            
+            // Group summonses in groups of 8
+            const groups = [];
+            for (let i = 0; i < newMoneyData.length; i += 8) {
+                groups.push(newMoneyData.slice(i, i + 8));
+            }
+            
+            // Get today's date in MM/DD/YYYY format
+            const today = new Date();
+            const dateString = `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
+            
+            // Build modal content
+            let html = '';
+            groups.forEach((group, index) => {
+                const summonsList = group.map(item => item['Summons Number'] || item.summons).join('\n');
+                // Create search string with OR between quoted exact matches
+                const searchString = group.map(item => `"${item['Summons Number'] || item.summons}"`).join(' OR ');
+                
+                // Create email subject
+                const emailSubject = `Complaint Payment ${dateString} #${index + 1}`;
+                
+                // Create spreadsheet data (tab-separated for easy paste into Google Sheets)
+                // Add sequence number if there are multiple groups
+                const sequenceSuffix = groups.length > 1 ? ` - #${index + 1}` : '';
+                const spreadsheetData = group.map(item => {
+                    const summonsNum = item['Summons Number'] || item.summons;
+                    return `${summonsNum}\t${dateString}${sequenceSuffix}`;
+                }).join('\n');
+                
+                // Determine email body based on dataset
+                let emailBody;
+                if (dataset === 'mbt') {
+                    // For MBT, body format (not subject)
+                    emailBody = `Hello, I am the citizen who submitted the complaint for the following paid summons through the Citizens Air Complaint Program:
+
+Vendor Code: ${vendorInfo.code}
+${vendorInfo.name}
+Mailing address: ${vendorInfo.address}
+
+${summonsList}`;
+                } else {
+                    // For AT and AT-NYC
+                    emailBody = `Hello, I am the citizen who submitted the complaint for the following paid summons through the Citizens Air Complaint Program:
+
+Vendor Code: ${vendorInfo.code}
+${vendorInfo.name}
+Mailing address: ${vendorInfo.address}
+
+${summonsList}`;
+                }
+                
+                html += `
+                    <div class="email-group">
+                        <h3>Group ${index + 1} (${group.length} summonses)</h3>
+                        
+                        <div class="copy-section">
+                            <label>Email Subject:</label>
+                            <textarea id="email-subject-${index}" rows="1" readonly>${emailSubject}</textarea>
+                            <button class="copy-btn" onclick="copyToClipboard('email-subject-${index}', this)">📋 Copy</button>
+                        </div>
+                        
+                        <div class="copy-section">
+                            <label>Email Body:</label>
+                            <textarea id="email-body-${index}" rows="10" readonly>${emailBody}</textarea>
+                            <button class="copy-btn" onclick="copyToClipboard('email-body-${index}', this)">📋 Copy</button>
+                        </div>
+                        
+                        <div class="copy-section">
+                            <label>Gmail Search String:</label>
+                            <textarea id="search-string-${index}" rows="2" readonly>${searchString}</textarea>
+                            <button class="copy-btn" onclick="copyToClipboard('search-string-${index}', this)">📋 Copy</button>
+                        </div>
+                        
+                        <div class="copy-section">
+                            <label>Spreadsheet Data (Paste into Google Sheets):</label>
+                            <textarea id="spreadsheet-data-${index}" rows="6" readonly>${spreadsheetData}</textarea>
+                            <button class="copy-btn" onclick="copyToClipboard('spreadsheet-data-${index}', this)">📋 Copy</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            modalBody.innerHTML = html;
+            modal.style.display = 'block';
+        }
+
+        function getVendorInfo(dataset) {
+            switch(dataset) {
+                case 'at':
+                    return {
+                        code: 'VS00083313',
+                        name: 'Alexander Traynor',
+                        address: '374 Monaco Ln, Glastonbury, CT 06033'
+                    };
+                case 'at-nyc':
+                    return {
+                        code: 'VS00083313',
+                        name: 'Alexander Traynor',
+                        address: '374 Monaco Ln, Glastonbury, CT 06033'
+                    };
+                case 'mbt':
+                    return {
+                        code: 'VS00099981',
+                        name: 'Mary Beth Brown-Traynor ',
+                        address: '97 Ledgewood Dr, Glastonbury, CT 06033'
+                    };
+                default:
+                    return {
+                        code: 'UNKNOWN',
+                        name: 'UNKNOWN',
+                        address: 'UNKNOWN'
+                    };
+            }
+        }
+
+        function getNewMoneyData(dataset) {
+            // Get merged data
+            const data = appData[dataset].merged || [];
+            
+            // Filter for "Paid in Full" status but not yet collected
+            // This matches the logic in renderNewMoney()
+            const newMoney = data.filter(row => {
+                const hearingStatus = (row['Hearing Status'] || '').toLowerCase();
+                const paymentStatus = (row['Payment Status'] || '').trim();
+                return hearingStatus === 'paid in full' && !paymentStatus;
+            });
+            
+            return newMoney;
+        }
+
+        function closeEmailModal() {
+            document.getElementById('emailModal').style.display = 'none';
+        }
+
+        function copyToClipboard(elementId, button) {
+            const textarea = document.getElementById(elementId);
+            textarea.select();
+            textarea.setSelectionRange(0, 99999); // For mobile devices
+            
+            try {
+                document.execCommand('copy');
+                button.textContent = '✅ Copied!';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.textContent = '📋 Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                alert('Failed to copy. Please copy manually.');
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('emailModal');
+            if (event.target == modal) {
+                closeEmailModal();
+            }
+        }
+
+        // Data Converter Functions
+        function convertOATHData() {
+            const rawData = document.getElementById('raw-data-input').value.trim();
+            const paymentDate = document.getElementById('payment-date-input').value;
+            
+            if (!rawData) {
+                alert('Please paste raw OATH data.');
+                return;
+            }
+            
+            if (!paymentDate) {
+                alert('Please select a payment date.');
+                return;
+            }
+            
+            // Parse the raw data
+            // Format: "Office of Administrative Trials and HearingsBP00861922Z87.5087.50Additional Details"
+            const pattern = /BP(\d{8}[A-Z])/g;
+            const matches = [...rawData.matchAll(pattern)];
+            
+            if (matches.length === 0) {
+                alert('No valid summons numbers found in the format BP########L');
+                return;
+            }
+            
+            // Extract summons numbers and convert
+            const summonses = matches.map(match => {
+                const summonsNum = match[1]; // Get the captured group (digits + letter)
+                return '0' + summonsNum; // Replace BP with single 0 (so 0 + 00###### = 000######)
+            });
+            
+            // Format date as MM/DD/YYYY
+            const dateObj = new Date(paymentDate);
+            const formattedDate = `${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}/${dateObj.getFullYear()}`;
+            
+            // Create table format with tabs (for spreadsheet paste)
+            let tableData = '';
+            summonses.forEach(summons => {
+                tableData += `${summons}\t87.5\t${formattedDate}\n`;
+            });
+            
+            // Display result
+            document.getElementById('converted-data-output').value = tableData;
+            document.getElementById('converted-output').style.display = 'block';
+        }
+
+        function copyConvertedData() {
+            const textarea = document.getElementById('converted-data-output');
+            if (textarea.value) {
+                textarea.select();
+                textarea.setSelectionRange(0, 99999);
+                
+                try {
+                    document.execCommand('copy');
+                    alert('Converted data copied to clipboard!');
+                } catch (err) {
+                    alert('Failed to copy. Please copy manually.');
+                }
+            } else {
+                alert('No converted data to copy. Please convert data first.');
+            }
+        }
+
+        function clearConverter() {
+            document.getElementById('raw-data-input').value = '';
+            document.getElementById('payment-date-input').value = '';
+            document.getElementById('converted-data-output').value = '';
+            document.getElementById('converted-output').style.display = 'none';
         }
     </script>
 </body>
