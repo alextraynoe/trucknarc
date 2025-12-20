@@ -1842,6 +1842,15 @@
                 </div>
             </div>
 
+            <!-- Running Money Tally -->
+            <div class="chart-section">
+                <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">💰 Running Money Tally (Cumulative Revenue)</h4>
+                <p style="color: #666; font-size: 0.85em; margin-bottom: 12px;">Total money received over time based on Payment Received dates</p>
+                <div class="chart-canvas-container">
+                    <canvas id="trend-cumulative-revenue-chart"></canvas>
+                </div>
+            </div>
+
             <!-- Disqualification Rate -->
             <div class="chart-section">
                 <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">❌ Disqualification Rate Over Time</h4>
@@ -1921,6 +1930,13 @@
                 <div class="chart-canvas-container">
                     <canvas id="weather-impact-chart"></canvas>
                 </div>
+            </div>
+
+            <!-- Estimated Total Profit -->
+            <div class="chart-section">
+                <h4 style="color: #1e3c72; margin-bottom: 10px; font-size: 1em;">💎 Estimated Total Profit (When Fully Settled)</h4>
+                <p style="color: #666; font-size: 0.85em; margin-bottom: 12px;">Projected total revenue from all summonses based on historical 2023 conversion rates (2+ years later)</p>
+                <div id="estimated-profit-breakdown"></div>
             </div>
         </div>
         </div>
@@ -3762,8 +3778,16 @@
                 const hearingResult = (row['Hearing Result'] || newRow['Hearing Result'] || '').toLowerCase();
                 if (hearingResult.includes('dismissed')) {
                     newRow['_rowType'] = 'dismissed';
+                    // If no Disqualification Reason specified, infer it was Dismissed
+                    if (!newRow['Disqualification Reason']) {
+                        newRow['Disqualification Reason'] = 'Dismissed';
+                    }
                 } else if (status.includes('disqualified')) {
                     newRow['_rowType'] = 'disqualified';
+                    // If no Disqualification Reason but hearing status says DISQUALIFIED, note that
+                    if (!newRow['Disqualification Reason'] && status.includes('disqualified')) {
+                        newRow['Disqualification Reason'] = 'Disqualified (reason not specified)';
+                    }
                 }
                 
                 // Add walking distance and temperature for this date
@@ -3798,6 +3822,80 @@
                 }
 
                 return newRow;
+            });
+
+            // SECOND PASS: Calculate per-summons walking distance based on submission times
+            // Group by date and calculate distances properly
+            const byDate = {};
+            merged.forEach(row => {
+                const dateStr = row['Violation Date'] || row['Date Submitted'];
+                const date = normalizeDate(dateStr);
+                if (!date) return;
+                
+                if (!byDate[date]) {
+                    byDate[date] = [];
+                }
+                byDate[date].push(row);
+            });
+
+            // For each date, sort by submission time and calculate walking distances
+            Object.keys(byDate).forEach(date => {
+                const rowsOnDay = byDate[date];
+                
+                // Parse and sort by time submitted
+                const withTimes = rowsOnDay
+                    .map(row => {
+                        const timeMatch = (row['Time Submitted'] || '').match(/(\d{1,2}):(\d{2})/);
+                        if (!timeMatch) return null;
+                        const hour = parseInt(timeMatch[1]);
+                        const minute = parseInt(timeMatch[2]);
+                        return {
+                            row: row,
+                            timeStr: row['Time Submitted'],
+                            timeInMinutes: hour * 60 + minute,
+                            hour: hour,
+                            minute: minute
+                        };
+                    })
+                    .filter(x => x !== null)
+                    .sort((a, b) => a.timeInMinutes - b.timeInMinutes);
+
+                if (withTimes.length === 0) return;
+
+                const hourlyData = walkingDataCache[date];
+                if (!hourlyData) return;
+
+                // Calculate distance for each submission
+                withTimes.forEach((item, index) => {
+                    let startHour, endHour;
+                    
+                    if (index === 0) {
+                        // First submission: from start of shift (7 AM) or first data to this time
+                        startHour = 7;
+                        endHour = item.hour;
+                    } else if (index === withTimes.length - 1) {
+                        // Last submission: from previous to end of shift or last data
+                        const prevHour = withTimes[index - 1].hour;
+                        startHour = prevHour;
+                        endHour = 23;
+                    } else {
+                        // Middle submission: from previous to this time
+                        const prevHour = withTimes[index - 1].hour;
+                        startHour = prevHour;
+                        endHour = item.hour;
+                    }
+                    
+                    // Sum miles in this time window
+                    let miles = 0;
+                    for (let h = startHour; h <= endHour; h++) {
+                        if (hourlyData[h]) {
+                            miles += hourlyData[h];
+                        }
+                    }
+                    
+                    // Update the row with calculated distance
+                    item.row['Walking Distance'] = miles > 0 ? miles.toFixed(2) + ' mi' : '';
+                });
             });
 
             appData[tab].merged = merged;
@@ -4276,9 +4374,9 @@
                 totalHtml += `<div class="total-item">Requested: $${totalRequestedAmount.toFixed(2)} ($${quarterRequested.toFixed(2)})</div>`;
             }
             
-            // Add expected revenue
-            const expectedTotal = filteredData.length * 82.50;
-            const yourExpected = expectedTotal * 0.25;
+            // Add expected revenue - use $330 per summons (not $82.50 which is your cut)
+            const expectedTotal = filteredData.length * 330;  // NYC gets $330 per summons
+            const yourExpected = expectedTotal * 0.25;         // You get 25% = $82.50 per summons
             totalHtml += `<div class="total-item">Expected: $${expectedTotal.toFixed(2)} ($${yourExpected.toFixed(2)})</div>`;
 
             totalsBar.innerHTML = totalHtml;
@@ -5760,6 +5858,67 @@
             }
             
             return Object.values(hourlyData).reduce((sum, miles) => sum + miles, 0);
+        }
+        
+        // NEW: Calculate walking distance for a specific summons based on submission time windows
+        function getWalkingDistanceForSubmission(dateKey, submissionTime, allSubmissionsOnDay) {
+            const hourlyData = walkingDataCache[dateKey];
+            if (!hourlyData || !submissionTime) {
+                return 0;
+            }
+            
+            // Parse submission time to get hour
+            const match = submissionTime.match(/(\d{1,2}):(\d{2})/);
+            if (!match) return 0;
+            
+            const currentHour = parseInt(match[1]);
+            const currentMinute = parseInt(match[2]);
+            const currentTimeInMinutes = currentHour * 60 + currentMinute;
+            
+            // Find previous and next submissions
+            const sortedSubmissions = allSubmissionsOnDay
+                .map(s => {
+                    const m = s.time.match(/(\d{1,2}):(\d{2})/);
+                    if (!m) return null;
+                    return {
+                        time: s.time,
+                        minutes: parseInt(m[1]) * 60 + parseInt(m[2]),
+                        summons: s.summons
+                    };
+                })
+                .filter(s => s !== null)
+                .sort((a, b) => a.minutes - b.minutes);
+            
+            const currentIndex = sortedSubmissions.findIndex(s => s.summons === submissionTime);
+            
+            // Determine start and end hours for this submission
+            let startHour, endHour;
+            
+            if (currentIndex === 0) {
+                // First submission: from start of shift (7 AM) to this time
+                startHour = 7;
+                endHour = currentHour;
+            } else if (currentIndex === sortedSubmissions.length - 1) {
+                // Last submission: from previous submission to end of day
+                const prevMinutes = sortedSubmissions[currentIndex - 1].minutes;
+                startHour = Math.floor(prevMinutes / 60);
+                endHour = 23; // End of day
+            } else {
+                // Middle submission: from previous to this time
+                const prevMinutes = sortedSubmissions[currentIndex - 1].minutes;
+                startHour = Math.floor(prevMinutes / 60);
+                endHour = currentHour;
+            }
+            
+            // Sum up miles for the hours in this window
+            let totalMiles = 0;
+            for (let hour = startHour; hour <= endHour; hour++) {
+                if (hourlyData[hour]) {
+                    totalMiles += hourlyData[hour];
+                }
+            }
+            
+            return totalMiles;
         }
         
         function getAverageTemperatureForDate(dateKey) {
@@ -7244,7 +7403,7 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
             generateDisqualificationDetective();
             generateGeographicHeatMap();
             generateViolationTypeAnalysis();
-            generateSmartAlerts();
+            // generateSmartAlerts();  // Container doesn't exist, commented out
             generateSeasonalPlanner();
             generateBehaviorChangeDetector();
             generateROIMetrics();
@@ -7818,169 +7977,84 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
             const container = document.getElementById('insight-cash-flow');
             const allData = getFilteredInsightsData();
 
-            // STEP 1: Calculate historical collection rate
-            const paidInFullCases = allData.filter(row => {
-                const status = (row['Hearing Status'] || '').toLowerCase();
-                return status === 'paid in full';
-            });
+            // METHODOLOGY: Based on actual historical data from changes tracking
+            // Over 62 days (Oct 18 - Dec 19): 70 fresh cases became PAID IN FULL
+            // That's 1.1 cases/day or ~35 cases/month
+            // Average amount: $374, Your cut: $96 per case
             
-            const actuallyPaidCases = paidInFullCases.filter(row => row['Payment Status']);
-            const historicalCollectionRate = paidInFullCases.length > 0 
-                ? actuallyPaidCases.length / paidInFullCases.length 
-                : 0.75; // Default 75% if no data
-
-            // STEP 2: Calculate average days to payment (from Paid in Full to Payment Received)
-            const paymentDelays = [];
-            actuallyPaidCases.forEach(row => {
-                try {
-                    const hearingDate = new Date(row['Hearing Date']);
-                    const paymentDate = new Date(row['Payment Received'] || row['Date Paid']);
-                    if (!isNaN(hearingDate.getTime()) && !isNaN(paymentDate.getTime())) {
-                        const days = Math.floor((paymentDate - hearingDate) / (1000 * 60 * 60 * 24));
-                        if (days >= 0 && days < 365) paymentDelays.push(days);
-                    }
-                } catch (e) {}
-            });
-
-            // Use median instead of average to avoid outliers
-            paymentDelays.sort((a, b) => a - b);
-            const medianDelay = paymentDelays.length > 0 
-                ? paymentDelays[Math.floor(paymentDelays.length / 2)]
-                : 60; // Default 60 days
-
-            // STEP 3: Find pipeline - "Paid in Full" but no Payment Status
-            const pipeline = paidInFullCases.filter(row => !row['Payment Status']);
+            const CASES_PER_DAY = 1.1;  // Historical rate of fresh cases
+            const AVG_AMOUNT = 374;     // Average paid amount from actual data
+            const YOUR_CUT_PER_CASE = AVG_AMOUNT * 0.25;  // $96
             
-            // STEP 4: Calculate expected amounts and bucket by timeframe
-            const now = new Date();
-            const forecast = {
-                next30: {amount: 0, count: 0},
-                next60: {amount: 0, count: 0},
-                next90: {amount: 0, count: 0}
+            // Calculate forecasts
+            const forecast_30 = {
+                cases: Math.round(CASES_PER_DAY * 30),
+                revenue: CASES_PER_DAY * 30 * YOUR_CUT_PER_CASE
             };
             
-            pipeline.forEach(row => {
-                try {
-                    const hearingDate = new Date(row['Hearing Date']);
-                    if (isNaN(hearingDate.getTime())) return;
-                    
-                    const daysSinceHearing = Math.floor((now - hearingDate) / (1000 * 60 * 60 * 24));
-                    const expectedDaysRemaining = medianDelay - daysSinceHearing;
-                    
-                    const amount = parseFloat((row['Paid Amount'] || '0').toString().replace(/[$,]/g, ''));
-                    if (isNaN(amount) || amount === 0) return;
-                    
-                    const yourCut = amount * 0.25 * historicalCollectionRate; // Apply collection rate
-                    
-                    if (expectedDaysRemaining <= 90) {
-                        forecast.next90.amount += yourCut;
-                        forecast.next90.count++;
-                    }
-                    if (expectedDaysRemaining <= 60) {
-                        forecast.next60.amount += yourCut;
-                        forecast.next60.count++;
-                    }
-                    if (expectedDaysRemaining <= 30) {
-                        forecast.next30.amount += yourCut;
-                        forecast.next30.count++;
-                    }
-                } catch (e) {}
-            });
+            const forecast_60 = {
+                cases: Math.round(CASES_PER_DAY * 60),
+                revenue: CASES_PER_DAY * 60 * YOUR_CUT_PER_CASE
+            };
+            
+            const forecast_90 = {
+                cases: Math.round(CASES_PER_DAY * 90),
+                revenue: CASES_PER_DAY * 90 * YOUR_CUT_PER_CASE
+            };
 
-            // STEP 5: New Money Prediction - summonses that will likely become "Paid in Full"
-            const outstandingCases = allData.filter(row => {
+            // Count current pending cases to show pipeline health
+            const pendingHearings = allData.filter(row => {
                 const status = (row['Hearing Status'] || '').toUpperCase();
-                // Outstanding if not decided yet and not NEW ISSUANCE
-                return status !== 'PAID IN FULL' && 
-                       status !== 'DISQUALIFIED' && 
-                       status !== 'DISMISSED' &&
-                       status !== 'NEW ISSUANCE' &&
-                       row['Paid Amount']; // Has a value
-            });
-            
-            // Be more aggressive - assume 60% of outstanding will become Paid in Full
-            const newMoneyRate = 0.60;
-            let newMoneyTotal = 0;
-            let newMoneySoonTotal = 0; // Cases likely to pay in next 90 days
-            
-            outstandingCases.forEach(row => {
-                const amount = parseFloat((row['Paid Amount'] || '0').toString().replace(/[$,]/g, ''));
-                if (!isNaN(amount) && amount > 0) {
-                    const expectedRevenue = amount * 0.25 * newMoneyRate * historicalCollectionRate;
-                    newMoneyTotal += expectedRevenue;
-                    
-                    // Check if case is old enough to expect payment soon
-                    try {
-                        const violationDate = new Date(row['Violation Date']);
-                        const monthsOld = (now - violationDate) / (1000 * 60 * 60 * 24 * 30);
-                        if (monthsOld >= 2) { // If 2+ months old, likely to resolve soon
-                            newMoneySoonTotal += expectedRevenue;
-                        }
-                    } catch (e) {}
-                }
-            });
+                const hearingDate = row['Hearing Date'];
+                return hearingDate && !status && status !== 'NEW ISSUANCE';
+            }).length;
 
-            // Generate HTML
             let html = '<div style="margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px;">';
-            html += '<h4 style="margin: 0 0 10px 0; font-size: 1.2em;">📊 Cash Flow Intelligence</h4>';
+            html += '<h4 style="margin: 0 0 10px 0; font-size: 1.2em;">💰 New Money Forecast</h4>';
             html += '<div style="font-size: 0.9em; opacity: 0.9;">';
-            html += `Historical Collection Rate: ${(historicalCollectionRate * 100).toFixed(0)}% • `;
-            html += `Median Payment Time: ${medianDelay} days • `;
-            html += `Pipeline: ${pipeline.length} cases`;
+            html += `Based on historical rate: ${CASES_PER_DAY.toFixed(1)} cases/day becoming PAID IN FULL • `;
+            html += `Avg $${AVG_AMOUNT} per case • Your cut: $${YOUR_CUT_PER_CASE.toFixed(0)}`;
             html += '</div></div>';
             
             html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">';
             
             html += `<div style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">`;
             html += '<div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 8px;">Next 30 Days</div>';
-            html += `<div style="font-size: 2.5em; font-weight: bold; margin: 10px 0;">$${forecast.next30.amount.toFixed(2)}</div>`;
-            html += `<div style="font-size: 0.9em; opacity: 0.95;">${forecast.next30.count} payments expected</div>`;
+            html += `<div style="font-size: 2.5em; font-weight: bold; margin: 10px 0;">$${forecast_30.revenue.toFixed(0)}</div>`;
+            html += `<div style="font-size: 0.9em; opacity: 0.95;">~${forecast_30.cases} cases → PAID IN FULL</div>`;
             html += '</div>';
 
             html += `<div style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">`;
             html += '<div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 8px;">Next 60 Days</div>';
-            html += `<div style="font-size: 2.5em; font-weight: bold; margin: 10px 0;">$${forecast.next60.amount.toFixed(2)}</div>`;
-            html += `<div style="font-size: 0.9em; opacity: 0.95;">${forecast.next60.count} payments expected</div>`;
+            html += `<div style="font-size: 2.5em; font-weight: bold; margin: 10px 0;">$${forecast_60.revenue.toFixed(0)}</div>`;
+            html += `<div style="font-size: 0.9em; opacity: 0.95;">~${forecast_60.cases} cases → PAID IN FULL</div>`;
             html += '</div>';
 
             html += `<div style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">`;
             html += '<div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 8px;">Next 90 Days</div>';
-            html += `<div style="font-size: 2.5em; font-weight: bold; margin: 10px 0;">$${forecast.next90.amount.toFixed(2)}</div>`;
-            html += `<div style="font-size: 0.9em; opacity: 0.95;">${forecast.next90.count} payments expected</div>`;
+            html += `<div style="font-size: 2.5em; font-weight: bold; margin: 10px 0;">$${forecast_90.revenue.toFixed(0)}</div>`;
+            html += `<div style="font-size: 0.9em; opacity: 0.95;">~${forecast_90.cases} cases → PAID IN FULL</div>`;
             html += '</div>';
 
             html += '</div>';
 
-            // New Money Prediction
-            html += '<div style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 8px; color: white; text-align: center;">';
-            html += '<div style="font-size: 1em; opacity: 0.95; margin-bottom: 8px;">💰 New Money Forecast (Next 3-6 Months)</div>';
-            html += `<div style="font-size: 2.8em; font-weight: bold; margin: 10px 0;">$${newMoneySoonTotal.toFixed(2)}</div>`;
-            html += '<div style="font-size: 0.9em; opacity: 0.95;">';
-            const oldCases = outstandingCases.filter(r => {
-                try {
-                    const vDate = new Date(r['Violation Date']);
-                    return (now - vDate) / (1000 * 60 * 60 * 24 * 30) >= 2;
-                } catch { return false; }
-            }).length;
-            html += `${oldCases} mature outstanding cases • Assuming ${(newMoneyRate * 100).toFixed(0)}% will be Paid in Full`;
-            html += '</div></div>';
-
-            // Methodology Explanation
-            html += `<div style="margin-top: 20px; padding: 15px; background: #e8f4f8; border-radius: 6px; border-left: 4px solid #3498db;">`;
-            html += `<strong>💡 Methodology:</strong><br>`;
-            html += `• <strong>Pipeline:</strong> ${pipeline.length} summonses with "Paid in Full" status awaiting payment<br>`;
-            html += `• <strong>Collection Rate:</strong> ${(historicalCollectionRate * 100).toFixed(0)}% based on historical data (${actuallyPaidCases.length} paid / ${paidInFullCases.length} eligible)<br>`;
-            html += `• <strong>Timeline:</strong> Median ${medianDelay} days from hearing to payment (using median to avoid outliers)<br>`;
-            html += `• <strong>New Money:</strong> ${(newMoneyRate * 100).toFixed(0)}% of ${oldCases} mature cases (2+ months old) expected to become Paid in Full`;
-            html += '</div>';
-
-            // Warning if collection rate is low
-            if (historicalCollectionRate < 0.60) {
-                html += `<div style="margin-top: 15px; padding: 15px; background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107;">`;
-                html += `<strong>⚠️ Collection Rate Alert:</strong> Your ${(historicalCollectionRate * 100).toFixed(0)}% collection rate is below optimal. `;
-                html += `Consider reviewing your follow-up procedures on "Paid in Full" cases.`;
+            // Pipeline health indicator
+            if (pendingHearings > 0) {
+                html += '<div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 6px;">';
+                html += '<strong>📊 Pipeline Health:</strong> ';
+                html += `${pendingHearings} cases with completed hearings awaiting status updates. `;
+                html += 'These will convert to PAID IN FULL over the coming weeks.';
                 html += '</div>';
             }
+
+            // Methodology explanation
+            html += `<div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #667eea;">`;
+            html += `<strong>💡 Forecast Methodology:</strong><br>`;
+            html += `This forecast predicts how many cases will become "PAID IN FULL" (ready to collect). `;
+            html += `Based on actual historical data from the past 2 months: `;
+            html += `70 fresh cases became PAID IN FULL over 62 days = ${CASES_PER_DAY.toFixed(1)} cases/day. `;
+            html += `Average amount $${AVG_AMOUNT}, your 25% cut = $${YOUR_CUT_PER_CASE.toFixed(0)} per case.`;
+            html += '</div>';
 
             container.innerHTML = html;
         }
@@ -8403,6 +8477,11 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
             const container = document.getElementById('insight-seasonal');
             const allData = getFilteredInsightsData();
 
+            if (!allData || allData.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><p>No data available. Please ensure datasets are loaded and selected.</p></div>';
+                return;
+            }
+
             const monthlyStats = {};
             const fiscalMonthNames = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
             const calendarMonthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -8419,6 +8498,11 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
                     monthlyStats[fiscalMonth]++;
                 }
             });
+
+            if (Object.keys(monthlyStats).length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><p>No violation date data found.</p></div>';
+                return;
+            }
 
             const avgPerMonth = Object.values(monthlyStats).reduce((a, b) => a + b, 0) / 12;
             const now = new Date();
@@ -8440,15 +8524,14 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
             html += '</div>';
 
             const busiestMonth = Object.entries(monthlyStats).sort((a, b) => b[1] - a[1])[0];
-            html += `<div style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">`;
-            html += '<div style="font-size: 0.9em; opacity: 0.9;">Peak Season</div>';
-            html += `<div style="font-size: 2.5em; font-weight: bold; margin: 10px 0;">${fiscalMonthNames[busiestMonth[0]]}</div>`;
-            html += `<div style="font-size: 0.85em;">${busiestMonth[1]} violations</div>`;
-            html += '</div>';
+            if (busiestMonth) {
+                html += `<div style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">`;
+                html += '<div style="font-size: 0.9em; opacity: 0.9;">Peak Season</div>';
+                html += `<div style="font-size: 2.5em; font-weight: bold; margin: 10px 0;">${fiscalMonthNames[busiestMonth[0]]}</div>`;
+                html += `<div style="font-size: 0.85em;">${busiestMonth[1]} violations</div>`;
+                html += '</div>';
+            }
 
-            html += '</div>';
-            
-            html += '<div style="margin-top: 15px; padding: 12px; background: #f0f4ff; border-radius: 6px; border-left: 4px solid #667eea;">';
             html += '</div>';
 
             container.innerHTML = html;
@@ -8462,7 +8545,7 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
                         data: {
                             labels: fiscalMonthNames,
                             datasets: [{
-                                label: 'Violations by Month (Fiscal Year)',
+                                label: 'Violations by Month',
                                 data: fiscalMonthNames.map((_, i) => monthlyStats[i] || 0),
                                 borderColor: '#667eea',
                                 backgroundColor: 'rgba(102, 126, 234, 0.1)',
@@ -8488,6 +8571,11 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
         function generateBehaviorChangeDetector() {
             const container = document.getElementById('insight-behavior-change');
             const allData = getFilteredInsightsData();
+
+            if (!allData || allData.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><p>No data available. Please ensure datasets are loaded and selected.</p></div>';
+                return;
+            }
 
             // Find revenue opportunities
             const opportunities = [];
@@ -8667,6 +8755,11 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
         function generateROIMetrics() {
             const container = document.getElementById('insight-roi');
             const allData = getFilteredInsightsData();
+
+            if (!allData || allData.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><p>No data available. Please ensure datasets are loaded and selected.</p></div>';
+                return;
+            }
 
             // Count requested as effectively paid for revenue calculations
             const paidAndRequestedCases = allData.filter(row => row['_rowType'] === 'paid' || row['_rowType'] === 'requested');
@@ -10456,6 +10549,7 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
             generateVolumeChart(data, grouping);
             generatePaymentTrendChart(data, grouping);
             generateRevenueChart(data, grouping);
+            generateCumulativeRevenueChart(data);  // NEW: Running tally chart
             generateDisqualificationChart(data, grouping);
             generateCompaniesChart(data, grouping);
             generateTimeOfDayChart(data);
@@ -10468,6 +10562,7 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
             generateTopDays(data);
             generateTopHours(data);
             generateTop25Companies(data);
+            generateEstimatedProfit(data);  // NEW: Estimated total profit
         }
 
         function generateVolumeChart(data, grouping) {
@@ -10722,6 +10817,119 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
                 console.log('Revenue chart created successfully');
             } catch (error) {
                 console.error('Error creating revenue chart:', error);
+            }
+        }
+
+        function generateCumulativeRevenueChart(data) {
+            console.log('generateCumulativeRevenueChart called with', data.length, 'rows');
+            
+            // Filter to only rows with Payment Received dates
+            const paymentsWithDates = data
+                .filter(row => row['Payment Received'] && row['_rowType'] === 'paid')
+                .map(row => {
+                    const amount = parseFloat((row['Paid Amount'] || '0').toString().replace(/[$,]/g, ''));
+                    return {
+                        date: new Date(row['Payment Received']),
+                        amount: amount * 0.25  // Your 25% share
+                    };
+                })
+                .filter(p => !isNaN(p.date.getTime()) && p.amount > 0)
+                .sort((a, b) => a.date - b.date);
+
+            if (paymentsWithDates.length === 0) {
+                console.log('No payment data with dates found');
+                const ctx = document.getElementById('trend-cumulative-revenue-chart');
+                if (ctx) {
+                    if (trendCharts.cumulativeRevenue) trendCharts.cumulativeRevenue.destroy();
+                    ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
+                }
+                return;
+            }
+
+            console.log('Found', paymentsWithDates.length, 'payments with dates');
+
+            // Calculate cumulative totals
+            let runningTotal = 0;
+            const cumulativeData = paymentsWithDates.map(payment => {
+                runningTotal += payment.amount;
+                return {
+                    date: payment.date,
+                    cumulative: runningTotal
+                };
+            });
+
+            // Format for chart
+            const labels = cumulativeData.map(d => d.date.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: '2-digit' 
+            }));
+            const values = cumulativeData.map(d => d.cumulative);
+
+            const ctx = document.getElementById('trend-cumulative-revenue-chart');
+            if (!ctx) {
+                console.error('Cumulative revenue chart canvas not found');
+                return;
+            }
+            
+            if (trendCharts.cumulativeRevenue) trendCharts.cumulativeRevenue.destroy();
+            
+            try {
+                trendCharts.cumulativeRevenue = new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total Money Earned (Your 25%)',
+                            data: values,
+                            borderColor: '#27ae60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 3,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { display: true },
+                            title: {
+                                display: true,
+                                text: `Running Total: $${runningTotal.toFixed(2)}`
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Total: $' + context.parsed.y.toFixed(2);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
+                        }
+                    }
+                });
+
+                console.log('Cumulative revenue chart created. Total:', runningTotal.toFixed(2));
+            } catch (error) {
+                console.error('Error creating cumulative revenue chart:', error);
             }
         }
 
@@ -11730,7 +11938,14 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
             const companyData = {};
             
             data.forEach(row => {
-                const company = normalizeCompanyName(row['Company Name'] || 'Unknown');
+                let company = normalizeCompanyName(row['Company Name'] || 'Unknown');
+                
+                // Additional normalization for common variations
+                if (company.includes('PENSKE TRUCK LEASING')) {
+                    company = 'PENSKE TRUCK LEASING';
+                } else if (company.includes('U-HAUL') || company.includes('UHAUL')) {
+                    company = 'U-HAUL CO';
+                }
                 
                 if (!companyData[company]) {
                     companyData[company] = {
@@ -11742,9 +11957,10 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
                 
                 companyData[company].submissions++;
                 
-                if (row['_rowType'] === 'paid') {
+                // Count both paid AND requested as "paid" for this table
+                if (row['_rowType'] === 'paid' || row['_rowType'] === 'requested') {
                     companyData[company].paidCount++;
-                    const amount = parseFloat((row['Paid Amount'] || '0').replace(/[$,]/g, ''));
+                    const amount = parseFloat((row['Paid Amount'] || '0').toString().replace(/[$,]/g, ''));
                     if (!isNaN(amount)) {
                         companyData[company].totalPaid += amount;
                     }
@@ -11761,7 +11977,7 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
             html += '<th style="padding: 8px;">Rank</th>';
             html += '<th style="padding: 8px;">Company</th>';
             html += '<th style="padding: 8px; text-align: right;">Submissions</th>';
-            html += '<th style="padding: 8px; text-align: right;">Paid Count</th>';
+            html += '<th style="padding: 8px; text-align: right;">Paid/Requested</th>';
             html += '<th style="padding: 8px; text-align: right;">NYC Paid Total</th>';
             html += '<th style="padding: 8px; text-align: right;">Your 25%</th>';
             html += '<th style="padding: 8px; text-align: right;">Pay Rate</th>';
@@ -11803,6 +12019,188 @@ Your data includes ${allData.length} total summonses across AT, AT-NYC, and MBT 
             html += '</tr>';
 
             html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        function generateEstimatedProfit(data) {
+            // Based on 2023 data analysis (2+ years after submission):
+            // - 64.6% of all summonses were paid (443 out of 686)
+            // - Non-defaulted: 82.1% pay rate
+            // - Defaulted: 42.2% pay rate
+            // - Of those paid: 25.5% got $250, 74.5% got $88 (from actual 2023 data)
+            // CRITICAL: Use $350 as default for cases without Paid Amount (typical violation value)
+            
+            const OVERALL_SUCCESS_RATE = 0.646;  // 64.6% of all summonses eventually pay
+            const NON_DEFAULT_PAY_RATE = 0.821;  // If decided, 82.1% of non-default pay
+            const DEFAULT_PAY_RATE = 0.422;       // If decided, 42.2% of defaulted pay
+            const TYPICAL_VIOLATION_AMOUNT = 350; // Default amount when Paid Amount is blank
+            const HIGH_PAYMENT_RATE = 0.255;      // 25.5% get paid at $250
+            const LOW_PAYMENT_RATE = 0.745;       // 74.5% get paid at $88
+            const HIGH_PAYMENT_AMOUNT = 250;      // High payment to user
+            const LOW_PAYMENT_AMOUNT = 88;        // Low payment to user
+            
+            // Categorize current data
+            let alreadyPaid = 0;
+            let alreadyPaidAmount = 0;
+            let requested = 0;
+            let requestedAmount = 0;
+            let outstanding = 0;
+            let outstandingAmount = 0;
+            let outstandingDefaulted = 0;
+            let outstandingDefaultedAmount = 0;
+            let outstandingNonDefaulted = 0;
+            let outstandingNonDefaultedAmount = 0;
+            let disqualified = 0;
+            let dismissed = 0;
+            let outstandingNoAmounts = 0;
+            
+            data.forEach(row => {
+                const amount = parseFloat((row['Paid Amount'] || '0').toString().replace(/[$,]/g, ''));
+                
+                const hearingResult = (row['Hearing Result'] || '').toUpperCase();
+                const hearingStatus = (row['Hearing Status'] || '').toUpperCase();
+                const rowType = row['_rowType'];
+                
+                if (rowType === 'paid') {
+                    alreadyPaid++;
+                    if (amount > 0) alreadyPaidAmount += amount;
+                } else if (rowType === 'requested') {
+                    requested++;
+                    if (amount > 0) requestedAmount += amount;
+                } else if (rowType === 'disqualified') {
+                    disqualified++;
+                } else if (rowType === 'dismissed') {
+                    dismissed++;
+                } else {
+                    // Outstanding: EVERYTHING that's not paid, requested, disqualified, or dismissed
+                    outstanding++;
+                    
+                    // Use actual amount if available, otherwise use typical $350
+                    const effectiveAmount = amount > 0 ? amount : TYPICAL_VIOLATION_AMOUNT;
+                    
+                    if (amount === 0) {
+                        outstandingNoAmounts++;
+                    }
+                    
+                    outstandingAmount += effectiveAmount;
+                    
+                    // Check if defaulted
+                    if (hearingResult.includes('DEFAULT') || hearingStatus.includes('DEFAULT')) {
+                        outstandingDefaulted++;
+                        outstandingDefaultedAmount += effectiveAmount;
+                    } else {
+                        outstandingNonDefaulted++;
+                        outstandingNonDefaultedAmount += effectiveAmount;
+                    }
+                }
+            });
+            
+            // Calculate expected revenue from outstanding
+            // Step 1: Apply success rates to get how much NYC will receive
+            const nycGetsFromNonDefault = outstandingNonDefaultedAmount * NON_DEFAULT_PAY_RATE;
+            const nycGetsFromDefault = outstandingDefaultedAmount * DEFAULT_PAY_RATE;
+            const totalNycGets = nycGetsFromNonDefault + nycGetsFromDefault;
+            
+            // Step 2: Calculate number of cases that will pay
+            const casesFromNonDefault = outstandingNonDefaulted * NON_DEFAULT_PAY_RATE;
+            const casesFromDefault = outstandingDefaulted * DEFAULT_PAY_RATE;
+            const totalCasesThatWillPay = casesFromNonDefault + casesFromDefault;
+            
+            // Step 3: Split those cases into high ($250) and low ($88) payments
+            const highPaymentCases = totalCasesThatWillPay * HIGH_PAYMENT_RATE;
+            const lowPaymentCases = totalCasesThatWillPay * LOW_PAYMENT_RATE;
+            
+            // Step 4: Calculate my revenue
+            const myExpectedFromOutstanding = (highPaymentCases * HIGH_PAYMENT_AMOUNT) + (lowPaymentCases * LOW_PAYMENT_AMOUNT);
+            
+            // Calculate revenue (my 25% cut) for already paid/requested
+            const myPaid = alreadyPaidAmount * 0.25;
+            const myRequested = requestedAmount * 0.25;
+            
+            const totalExpected = myPaid + myRequested + myExpectedFromOutstanding;
+            const totalSummonses = data.length;
+            const avgPerSummons = totalExpected / totalSummonses;
+            
+            // Calculate what percentage have amounts
+            const outstandingWithAmounts = outstanding - outstandingNoAmounts;
+            
+            // Generate HTML
+            const container = document.getElementById('estimated-profit-breakdown');
+            let html = '';
+            
+            // Big number at top
+            html += '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 20px;">';
+            html += '<div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 10px;">💎 ESTIMATED TOTAL PROFIT (YOUR 25%)</div>';
+            html += `<div style="font-size: 3.5em; font-weight: bold; margin: 10px 0;">$${totalExpected.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
+            html += `<div style="font-size: 1em; opacity: 0.95;">From ${totalSummonses.toLocaleString()} total summonses • Average $${avgPerSummons.toFixed(2)} per summons</div>`;
+            html += '</div>';
+            
+            // Status breakdown
+            const paidPct = (alreadyPaid / totalSummonses * 100).toFixed(1);
+            const requestedPct = (requested / totalSummonses * 100).toFixed(1);
+            const outstandingPct = (outstanding / totalSummonses * 100).toFixed(1);
+            
+            html += '<div style="padding: 15px; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3; margin-bottom: 15px;">';
+            html += '<strong>📋 Portfolio Status:</strong><br>';
+            html += `• Paid: ${alreadyPaid} (${paidPct}%)<br>`;
+            html += `• Requested: ${requested} (${requestedPct}%)<br>`;
+            html += `• Outstanding: ${outstanding} (${outstandingPct}%)`;
+            if (outstandingNoAmounts > 0) {
+                html += ` <span style="color: #27ae60;">ℹ️ ${outstandingNoAmounts} estimated at $${TYPICAL_VIOLATION_AMOUNT} each</span>`;
+            }
+            html += `<br>• Disqualified: ${disqualified} | Dismissed: ${dismissed}`;
+            html += '</div>';
+            
+            // Breakdown
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">';
+            
+            // Already Paid
+            html += '<div style="background: #d4edda; padding: 20px; border-radius: 8px; border-left: 4px solid #28a745;">';
+            html += '<div style="font-size: 0.85em; color: #155724; margin-bottom: 8px;">✅ Already Received</div>';
+            html += `<div style="font-size: 2em; font-weight: bold; color: #28a745; margin: 8px 0;">$${myPaid.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>`;
+            html += `<div style="font-size: 0.85em; color: #155724;">${alreadyPaid} cases • $${alreadyPaidAmount.toLocaleString()} NYC total</div>`;
+            html += '</div>';
+            
+            // Requested (Pending)
+            html += '<div style="background: #d1ecf1; padding: 20px; border-radius: 8px; border-left: 4px solid #17a2b8;">';
+            html += '<div style="font-size: 0.85em; color: #0c5460; margin-bottom: 8px;">📋 Requested (Pending)</div>';
+            html += `<div style="font-size: 2em; font-weight: bold; color: #17a2b8; margin: 8px 0;">$${myRequested.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>`;
+            html += `<div style="font-size: 0.85em; color: #0c5460;">${requested} cases • $${requestedAmount.toLocaleString()} NYC total</div>`;
+            html += '</div>';
+            
+            // Expected from Outstanding
+            html += '<div style="background: #fff3cd; padding: 20px; border-radius: 8px; border-left: 4px solid #ffc107;">';
+            html += '<div style="font-size: 0.85em; color: #856404; margin-bottom: 8px;">⏳ Expected from Outstanding</div>';
+            html += `<div style="font-size: 2em; font-weight: bold; color: #ffc107; margin: 8px 0;">$${myExpectedFromOutstanding.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>`;
+            html += `<div style="font-size: 0.85em; color: #856404;">${outstanding} cases • ${totalCasesThatWillPay.toFixed(0)} expected to pay</div>`;
+            html += `<div style="font-size: 0.75em; color: #856404; margin-top: 4px;">${highPaymentCases.toFixed(0)} at $${HIGH_PAYMENT_AMOUNT} (25.5%) | ${lowPaymentCases.toFixed(0)} at $${LOW_PAYMENT_AMOUNT} (74.5%)</div>`;
+            html += '</div>';
+            
+            html += '</div>';
+            
+            // Detailed breakdown
+            html += '<div style="padding: 15px; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #4caf50; margin-bottom: 15px;">';
+            html += '<strong>📊 Detailed Calculation:</strong><br>';
+            html += `• Already paid: ${alreadyPaid} cases = $${alreadyPaidAmount.toLocaleString()} → Your 25% = $${myPaid.toLocaleString(undefined, {minimumFractionDigits: 2})}<br>`;
+            html += `• Requested (pending): ${requested} cases = $${requestedAmount.toLocaleString()} → Your 25% = $${myRequested.toLocaleString(undefined, {minimumFractionDigits: 2})}<br>`;
+            html += `• Outstanding: ${outstanding} cases → ${totalCasesThatWillPay.toFixed(0)} will pay<br>`;
+            html += `&nbsp;&nbsp;→ ${highPaymentCases.toFixed(0)} × $${HIGH_PAYMENT_AMOUNT} = $${(highPaymentCases * HIGH_PAYMENT_AMOUNT).toLocaleString(undefined, {minimumFractionDigits: 2})}<br>`;
+            html += `&nbsp;&nbsp;→ ${lowPaymentCases.toFixed(0)} × $${LOW_PAYMENT_AMOUNT} = $${(lowPaymentCases * LOW_PAYMENT_AMOUNT).toLocaleString(undefined, {minimumFractionDigits: 2})}<br>`;
+            html += `&nbsp;&nbsp;→ Total: $${myExpectedFromOutstanding.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            html += '</div>';
+            
+            // Methodology
+            html += '<div style="padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea; margin-top: 20px;">';
+            html += '<strong>📊 Methodology:</strong><br>';
+            html += 'Based on 2023 submission data analyzed in Dec 2025 (2+ years later):<br>';
+            html += '• <strong>Overall success rate:</strong> 64.6% of all summonses eventually paid (443 out of 686)<br>';
+            html += '• <strong>Non-defaulted cases:</strong> 82.1% pay rate<br>';
+            html += '• <strong>Defaulted cases:</strong> 42.2% pay rate<br>';
+            html += `• <strong>Payment split:</strong> 25.5% paid at $${HIGH_PAYMENT_AMOUNT}, 74.5% paid at $${LOW_PAYMENT_AMOUNT} (from 2023 data)<br>`;
+            html += `• For ${outstandingNoAmounts} cases without amounts: uses typical $${TYPICAL_VIOLATION_AMOUNT} violation value<br>`;
+            html += '• Applies historical pay rates and payment amounts to predict revenue';
+            html += '</div>';
+            
             container.innerHTML = html;
         }
 
