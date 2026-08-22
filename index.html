@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TruckNarc Basic</title>
+<title>TRUCKNARC Pro</title>
 <style>
   :root{
     --bg:#f4f6fa; --panel:#ffffff; --panel2:#f0f3f8; --border:#e2e7f0; --border2:#cdd6e4;
@@ -40,7 +40,11 @@
   }
   .icon-btn:hover{background:rgba(255,255,255,.38);}
 
-  .status-line{font-size:.75em; color:var(--dim2); margin:-4px 0 12px 2px; display:flex; gap:14px; flex-wrap:wrap;}
+  .status-line{font-size:.75em; color:var(--dim2); margin:-4px 0 12px 2px; display:flex; gap:14px; flex-wrap:wrap; align-items:center;}
+  .rgr-bar-wrap{display:none; align-items:center; gap:6px;}
+  .rgr-bar-wrap.active{display:flex;}
+  .rgr-bar{width:110px; height:6px; background:var(--panel2); border:1px solid var(--border); border-radius:3px; overflow:hidden;}
+  .rgr-bar-fill{height:100%; background:var(--blue); width:0%; transition:width .15s;}
 
   .tabs{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
   .tab-btn{
@@ -132,7 +136,7 @@
   tr.row-dismissed:hover td{background:#c9443e;}
   tr.row-submitted:hover td{background:#c6b3f5;}
   tr.row-nohearing:hover td{background:#c1def8;}
-  tr.row-dismissed .badge{background:rgba(255,255,255,.25); color:#fff;}
+  tr.row-dismissed .badge, tr.row-dismissed .badge.dataset-at, tr.row-dismissed .badge.dataset-atnyc, tr.row-dismissed .badge.dataset-mbt{background:rgba(255,255,255,.25); color:#fff;}
 
   .badge{padding:3px 9px; border-radius:20px; font-size:.72em; font-weight:700;}
   .badge.paid{background:rgba(33,138,76,.16); color:var(--success);}
@@ -141,6 +145,9 @@
   .badge.dismissed{background:rgba(255,255,255,.3); color:#fff; border:1px solid rgba(255,255,255,.5);}
   .badge.disq{background:rgba(192,57,43,.14); color:var(--danger);}
   .badge.none{background:var(--panel2); color:var(--dim);}
+  .badge.dataset-at{background:rgba(61,124,201,.14); color:var(--blue2);}
+  .badge.dataset-atnyc{background:rgba(255,107,53,.14); color:var(--orange2);}
+  .badge.dataset-mbt{background:rgba(107,79,187,.14); color:var(--purple);}
   .badge.chg-new{background:rgba(33,138,76,.16); color:var(--success);}
   .badge.chg-hearing_status{background:rgba(61,124,201,.14); color:var(--blue2);}
   .badge.chg-hearing_result{background:rgba(176,125,29,.16); color:var(--warn);}
@@ -287,7 +294,7 @@
   <header>
     <div class="title">
       <div>
-        <h1>🚚 TruckNarc Basic</h1>
+        <h1>🚚 TRUCKNARC Pro</h1>
       </div>
     </div>
     <div class="actions">
@@ -299,6 +306,11 @@
   <div class="status-line" id="status-line" style="align-items:center;">
     <span id="status-text">Loading cached data…</span>
     <button class="btn ghost" id="btn-refresh" style="padding:3px 10px; font-size:.95em;">↻ Refresh</button>
+    <button class="btn ghost" id="btn-really-good-refresh" style="padding:3px 10px; font-size:.95em;" title="Live-checks every row NYC has already reviewed but hasn't paid yet (defaulted, or a past hearing date) against the real-time ECB ticket portal instead of the bulk dataset (which can sit wrong for years), and fixes any that are actually already paid.">⚡ Really Good Refresh</button>
+    <span class="rgr-bar-wrap" id="rgr-bar-wrap">
+      <span class="rgr-bar"><span class="rgr-bar-fill" id="rgr-bar-fill"></span></span>
+      <span id="rgr-bar-text">0 / 0</span>
+    </span>
   </div>
 
   <div class="tabs">
@@ -308,6 +320,7 @@
     <button class="tab-btn" data-tab="calendar">Calendar</button>
     <button class="tab-btn" data-tab="stats">Stats</button>
     <button class="tab-btn" data-tab="changes">Changes<span class="pip" id="changes-pip" style="display:none;">0</span></button>
+    <button class="tab-btn" data-tab="map">Map</button>
   </div>
 
   <!-- DASHBOARD (new home) -->
@@ -329,7 +342,7 @@
       </div>
     </div>
     <div class="panel">
-      <h2>Filing Pace <span class="tag">last 8 weeks</span></h2>
+      <h2>Weekly Totals <span class="tag">last 8 weeks</span></h2>
       <div id="dash-spark"></div>
     </div>
     <div class="panel">
@@ -343,7 +356,7 @@
     <div class="grid" id="home-stats"></div>
     <div class="panel">
       <h2>All Complaints <span class="tag" id="home-count">0 records</span></h2>
-      <p class="desc">Sorted by submission date (most recent first). Disqualified and dismissed complaints always remain visible and counted.</p>
+      <p class="desc">Merged across AT, AT NYC and Alt, sorted by submission date (most recent first). Disqualified and dismissed complaints always remain visible and counted.</p>
       <div class="legend">
         <span><i style="background:#d4edda;"></i> Paid</span>
         <span><i style="background:#fff3cd;"></i> Requested</span>
@@ -354,6 +367,12 @@
       </div>
       <div class="search-row">
         <input type="search" id="home-search" placeholder="Search company, summons #, complaint #, plate, location, description…">
+        <select id="home-filter-dataset">
+          <option value="">All datasets</option>
+          <option value="AT">AT</option>
+          <option value="AT NYC">AT NYC</option>
+          <option value="MBT">Alt</option>
+        </select>
         <select id="home-filter-status">
           <option value="">All statuses</option>
           <option value="paid">Paid</option>
@@ -385,7 +404,7 @@
       </h2>
       <p class="desc">NYC's records show these as paid in full, but there's no matching entry in your Paid/Requested log yet — money sitting there unclaimed.</p>
       <div class="table-wrap"><table id="newmoney-table">
-        <thead><tr><th>Summons #</th><th>Complaint #</th><th>Company</th><th>Paid Amt</th><th>My Payout</th><th>Hearing Date</th></tr></thead>
+        <thead><tr><th>Dataset</th><th>Summons #</th><th>Complaint #</th><th>Company</th><th>Paid Amt</th><th>My Payout</th><th>Hearing Date</th></tr></thead>
         <tbody></tbody>
       </table></div>
     </div>
@@ -393,7 +412,7 @@
       <h2>Requested but Not Yet Paid <span class="tag" id="pendreq-tag">Sorted by longest wait first</span></h2>
       <p class="desc">Estimated arrival based on how long your <b>recent</b> paid requests took (the lag has drifted a lot over time, so only the latest requests are used).</p>
       <div class="table-wrap"><table id="pending-req-table">
-        <thead><tr><th>Summons #</th><th>Company</th><th>Requested</th><th>Expected Amt</th><th>Days Waiting</th><th>Forecasted Payment</th></tr></thead>
+        <thead><tr><th>Dataset</th><th>Summons #</th><th>Company</th><th>Requested</th><th>Expected Amt</th><th>Days Waiting</th><th>Forecasted Payment</th></tr></thead>
         <tbody></tbody>
       </table></div>
     </div>
@@ -401,7 +420,7 @@
       <h2>Paid, But Not "Paid in Full" <span class="tag" id="disc-count">0 flagged</span></h2>
       <p class="desc">These show a paid amount, but NYC's hearing status doesn't say Paid in Full, and they're not in your Paid or Requested logs — worth double-checking.</p>
       <div class="table-wrap"><table id="disc-table">
-        <thead><tr><th>Summons #</th><th>Company</th><th>Paid Amt</th><th>Hearing Status</th><th>Compliance Status</th></tr></thead>
+        <thead><tr><th>Dataset</th><th>Summons #</th><th>Company</th><th>Paid Amt</th><th>Hearing Status</th><th>Compliance Status</th></tr></thead>
         <tbody></tbody>
       </table></div>
     </div>
@@ -409,7 +428,7 @@
       <h2>Timestamp Anomalies <span class="tag" id="anomaly-count">0 flagged</span></h2>
       <p class="desc">These rows have a clip From→To gap implying an impossible duration (a date typo or AM/PM flip in the source sheet, not a real long clip) — probably worth a correction email to DEP. Hours-worked math already treats these as unreliable rather than trusting the bad end time, so this list is just for your own sheet cleanup.</p>
       <div class="table-wrap"><table id="anomaly-table">
-        <thead><tr><th>Summons #</th><th>Complaint #</th><th>From</th><th>To (as filed)</th><th>Implied Duration</th></tr></thead>
+        <thead><tr><th>Dataset</th><th>Summons #</th><th>Complaint #</th><th>From</th><th>To (as filed)</th><th>Implied Duration</th></tr></thead>
         <tbody></tbody>
       </table></div>
     </div>
@@ -427,6 +446,12 @@
         <select id="cal-year"></select>
         <button class="btn ghost" id="cal-next">→</button>
         <button class="btn ghost" id="cal-today">Today</button>
+        <select id="cal-filter-dataset">
+          <option value="">All datasets</option>
+          <option value="AT">AT</option>
+          <option value="AT NYC">AT NYC</option>
+          <option value="MBT">Alt</option>
+        </select>
       </div>
       <div class="cal-grid with-totals" id="cal-heads"></div>
       <div class="cal-grid with-totals" id="cal-grid" style="margin-top:6px;"></div>
@@ -583,6 +608,16 @@
     </div>
   </section>
 
+  <section class="tab-content" id="tab-map">
+    <div class="panel">
+      <h2>Map <span class="tag">Google My Maps</span></h2>
+      <p class="desc">Embedded from your My Maps map. Edit the map itself directly on
+        <a href="https://www.google.com/maps/d/edit" target="_blank" rel="noopener">google.com/maps/d</a> —
+        changes there show up here on next load. Change which map is embedded in Settings.</p>
+      <iframe id="map-embed" src="" width="100%" height="700" style="border:0; border-radius:9px;" loading="lazy"></iframe>
+    </div>
+  </section>
+
 </div>
 
 <!-- SETTINGS MODAL -->
@@ -594,18 +629,34 @@
       <input type="text" id="cfg-pubid">
     </div>
     <div class="field">
-      <label>Sheet tab GIDs (Master / Requested / Paid / Disqualification Reasons)</label>
-      <input type="text" id="cfg-gid-master" placeholder="Master sheet gid" style="margin-bottom:6px;">
+      <label>Sheet tab GIDs (ATNYC / AT / Alt / Requested / Paid)</label>
+      <input type="text" id="cfg-gid-atnyc" placeholder="ATNYC gid" style="margin-bottom:6px;">
+      <input type="text" id="cfg-gid-at" placeholder="AT gid" style="margin-bottom:6px;">
+      <input type="text" id="cfg-gid-mbt" placeholder="Alt gid" style="margin-bottom:6px;">
       <input type="text" id="cfg-gid-requested" placeholder="Requested gid" style="margin-bottom:6px;">
       <input type="text" id="cfg-gid-paid" placeholder="Paid gid" style="margin-bottom:6px;">
       <input type="text" id="cfg-gid-disqreasons" placeholder="Disqualification Reasons gid">
     </div>
     <div class="field">
-      <label>Vendor info (used by Export for Email; kept locally)</label>
-      <div class="vendor-block">
-        <input type="text" id="cfg-vendor-code" placeholder="Vendor code" style="margin-bottom:6px;">
-        <input type="text" id="cfg-vendor-name" placeholder="Vendor name" style="margin-bottom:6px;">
-        <input type="text" id="cfg-vendor-address" placeholder="Mailing address">
+      <label>Map tab — Google My Maps ID (the mid= value from your map's URL)</label>
+      <input type="text" id="cfg-map-mid" placeholder="e.g. 1cy7y1egAwu9Bvmc3oKnuwxLK78BUCRI">
+    </div>
+    <div class="field">
+      <label>Vendor info per identity (used by Export for Email; kept locally)</label>
+      <div class="vendor-block"><b>AT</b>
+        <input type="text" id="cfg-at-code" placeholder="Vendor code" style="margin-bottom:6px;">
+        <input type="text" id="cfg-at-name" placeholder="Vendor name" style="margin-bottom:6px;">
+        <input type="text" id="cfg-at-address" placeholder="Mailing address">
+      </div>
+      <div class="vendor-block"><b>AT NYC</b>
+        <input type="text" id="cfg-atnyc-code" placeholder="Vendor code" style="margin-bottom:6px;">
+        <input type="text" id="cfg-atnyc-name" placeholder="Vendor name" style="margin-bottom:6px;">
+        <input type="text" id="cfg-atnyc-address" placeholder="Mailing address">
+      </div>
+      <div class="vendor-block"><b>Alt</b>
+        <input type="text" id="cfg-mbt-code" placeholder="Vendor code" style="margin-bottom:6px;">
+        <input type="text" id="cfg-mbt-name" placeholder="Vendor name" style="margin-bottom:6px;">
+        <input type="text" id="cfg-mbt-address" placeholder="Mailing address">
       </div>
     </div>
     <div class="field">
@@ -626,7 +677,7 @@
 <div class="modal-overlay" id="export-overlay">
   <div class="modal wide">
     <h3>📧 Export Summons for Email <span class="close-x" data-close="export-overlay">✕</span></h3>
-    <p class="desc" style="margin-bottom:14px;">Only rows whose NYC hearing status is <b>exactly</b> "Paid in Full" and that aren't in your Requested/Paid logs are included, split into groups of 8.</p>
+    <p class="desc" style="margin-bottom:14px;">Only rows whose NYC hearing status is <b>exactly</b> "Paid in Full" and that aren't in your Requested/Paid logs are included, split into groups of 8 per identity.</p>
     <div id="export-body"></div>
   </div>
 </div>
@@ -637,7 +688,7 @@
     <h3>How This App Works <span class="close-x" data-close="rules-overlay">✕</span></h3>
 
     <h4>Where the data comes from</h4>
-    <p>One published Google Sheet holds four tabs: a <b>Master</b> log of filed complaints, plus <b>Requested</b>, <b>Paid</b>, and <b>Disqualification Reasons</b>. Set the sheet's gids for each in Settings.</p>
+    <p>One published Google Sheet holds five tabs: <b>ATNYC</b>, <b>AT</b>, and <b>Alt</b> (per-identity master logs of filed complaints), plus shared <b>Requested</b> and <b>Paid</b> tabs that both carry a <code>Dataset</code> column (spelled inconsistently across tabs — "ATNYC" vs "AT NYC" — so this app normalizes spacing/case before matching).</p>
 
     <h4>Why the app still enriches live from NYC, even though the sheet already has some OATH fields</h4>
     <ul>
@@ -646,7 +697,7 @@
     </ul>
 
     <h4>How records get merged</h4>
-    <p>Rows are joined by <b>Summons Number</b>: master record + matching Paid/Requested entry + live NYC enrichment, all in one sorted, searchable list on the Data tab.</p>
+    <p>Within each identity, rows are joined by <b>Summons Number</b>: master record + matching Paid/Requested entry (filtered to that identity via the Dataset column) + live NYC enrichment. The Home tab then merges all three identities into one sorted, searchable list.</p>
 
     <h4>Home tab status logic (exact rules from the original app, in priority order)</h4>
     <ul>
@@ -694,7 +745,7 @@
     <p>W is measured lifetime-only on purpose: disqualifications resolve fast and wins resolve slow, so a "recent-only" win rate would be biased low. Hover the Estimated Grand Total card for the live per-category breakdown; the console logs it on every refresh.</p>
 
     <h4>Disqualification reasons</h4>
-    <p>The Disqualification Reasons tab maps Complaint Number → the specific disqualification reason (joined by complaint number, since disqualified filings never get a summons). Disqualified rows show the real reason wherever it appears.</p>
+    <p>A sixth sheet tab maps Complaint Number → the specific disqualification reason (joined by complaint number, since disqualified filings never get a summons). Disqualified rows show the real reason wherever it appears.</p>
 
     <h4>Company names</h4>
     <p>A ~130-entry lookup table maps known messy spellings ("CONSOLIDATED EDISON COMPANY OF NY INC.", "CONED", …) to one canonical name, so search finds all variants of the same real company. The table displays the name exactly as filed; searching matches both the raw and the canonical name.</p>
@@ -703,30 +754,46 @@
 
 <script>
 /* ============================== CONFIG ============================== */
-// Basic edition: ONE identity, ONE dataset — no pubId/gids/vendor info baked in. Whoever runs
-// this fills in their own sheet + vendor details in Settings on first launch.
 const DEFAULTS = {
-  pubId: '',
+  pubId: '2PACX-1vRfzJsYWK-rLLGVKG5QR249r38fXhtEHQwZgmQM3TPVVstajGc6jI8eNs6QjxqsripL9-ett4T27BWa',
   gids: {
-    master: '',
-    requested: '',
-    paid: '',
-    disqreasons: ''
+    atnyc: '161715193',
+    at: '1809279047',
+    mbt: '1576428771',
+    requested: '879915234',
+    paid: '1900607470',
+    disqreasons: '476493654'
   },
-  vendor: { code:'', name:'', address:'' },
+  vendors: {
+    at:    { code:'VS00083313', name:'Alexander Traynor',       address:'374 Monaco Ln, Glastonbury, CT 06033' },
+    atnyc: { code:'VS00083313', name:'Alexander Traynor',       address:'374 Monaco Ln, Glastonbury, CT 06033' },
+    mbt:   { code:'VS00099981', name:'Mary Beth Brown-Traynor', address:'97 Ledgewood Dr, Glastonbury, CT 06033' }
+  },
+  mapMid: '1cy7y1egAwu9Bvmc3oKnuwxLK78BUCRI', // Google My Maps map ID embedded on the Map tab
   enrich: 'on'
 };
-const LS_CFG = 'truckNarcBasicSettings';
-const LS_DATA = 'truckNarcBasicData';
+const LS_CFG = 'truckNarcSettings';
+const LS_DATA = 'truckNarcData';
+const LS_CFG_OLD = 'cacpTrackerSettings'; // migrated on first run, then left alone
 
 function loadConfig(){
   try{
-    const saved = JSON.parse(localStorage.getItem(LS_CFG) || 'null');
+    let saved = JSON.parse(localStorage.getItem(LS_CFG) || 'null');
+    if(!saved){
+      // one-time migration from the pre-rename settings key (sheet IDs + enrich toggle carry over)
+      const old = JSON.parse(localStorage.getItem(LS_CFG_OLD) || 'null');
+      if(old) saved = { pubId: old.pubId, gids: old.gids, enrich: old.enrich };
+    }
     if(!saved) return JSON.parse(JSON.stringify(DEFAULTS));
     return {
       pubId: saved.pubId || DEFAULTS.pubId,
       gids: Object.assign({}, DEFAULTS.gids, saved.gids || {}),
-      vendor: Object.assign({}, DEFAULTS.vendor, saved.vendor || {}),
+      vendors: {
+        at:    Object.assign({}, DEFAULTS.vendors.at,    (saved.vendors||{}).at    || {}),
+        atnyc: Object.assign({}, DEFAULTS.vendors.atnyc, (saved.vendors||{}).atnyc || {}),
+        mbt:   Object.assign({}, DEFAULTS.vendors.mbt,   (saved.vendors||{}).mbt   || {})
+      },
+      mapMid: saved.mapMid || DEFAULTS.mapMid,
       enrich: saved.enrich || DEFAULTS.enrich
     };
   }catch(e){ return JSON.parse(JSON.stringify(DEFAULTS)); }
@@ -1016,8 +1083,12 @@ async function fetchCSV(gid, label){
       if(!res.ok) throw new Error(attempt.name + ': HTTP ' + res.status);
       const text = await res.text();
       if(!text || text.trim().length === 0) throw new Error(attempt.name + ': empty response');
+      // A tab that's valid but genuinely has zero DATA rows (e.g. nothing requested yet) still
+      // parses to an empty array here — that's success, not failure. A bad/nonexistent gid
+      // already comes back as a non-2xx (caught by res.ok above), so there's nothing left to
+      // validate here; treating "0 data rows" as an error used to force a perfectly fine empty
+      // tab through the entire slow proxy fallback chain for nothing.
       const rows = parseCSV(text);
-      if(!rows.length) throw new Error(attempt.name + ': parsed 0 rows (check the gid/sharing settings for this tab)');
       delete fetchErrors[label];
       return rows;
     }catch(e){
@@ -1034,18 +1105,35 @@ function parseDate(str){
   if(!str) return null;
   const cleaned = String(str).trim().replace(/\s*-\s*#?\d+\s*$/,'').trim();
   if(!cleaned) return null;
-  if(/\d{4}/.test(cleaned)){
-    const d = new Date(cleaned);
-    if(!isNaN(d.getTime())) return d;
-  }
-  const m = cleaned.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?(?:[, ]+(\d{1,2}):(\d{2}))?/);
-  if(m){
-    let [_, mo, da, yr, hh, mi] = m;
-    if(!yr) yr = String(new Date().getFullYear()); // no-year entries: best guess is the current year
+  // Parse the two formats actually present in this data by hand — M/D/YYYY (year optional,
+  // defaults to 2023 for old no-year entries) and ISO YYYY-MM-DD — each optionally followed
+  // by a time and AM/PM. Native new Date() parses these leniently on Chrome, but Safari/
+  // WebKit is stricter about the comma-separated "date, H:MM:SS AM" hybrid that Google Sheets
+  // exports for datetime columns and silently returns Invalid Date there — which zeroed out
+  // every requested/paid conversion-date pair on iOS and collapsed the survival model's warp
+  // to its no-data fallback (×1.00, then the harsh flat T(age) curve instead of the real
+  // time-warped tail). Don't rely on the native parser's cross-browser leniency for formats
+  // we already know the shape of.
+  const mdy = cleaned.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?(?:[, T]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|am|pm)?)?/);
+  if(mdy){
+    let [_, mo, da, yr, hh, mi, ss, ap] = mdy;
+    if(!yr) yr = '2023'; // no-year entries line up with each identity's earliest 2023 request batches
     else if(yr.length === 2) yr = '20'+yr;
-    const d = new Date(+yr, +mo-1, +da, +(hh||0), +(mi||0));
+    hh = hh?+hh:0; mi = mi?+mi:0; ss = ss?+ss:0;
+    if(ap){ const isPM = /pm/i.test(ap); if(isPM && hh<12) hh+=12; if(!isPM && hh===12) hh=0; }
+    const d = new Date(+yr, +mo-1, +da, hh, mi, ss);
     if(!isNaN(d.getTime())) return d;
   }
+  const iso = cleaned.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[, T]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|am|pm)?)?/);
+  if(iso){
+    let [_, yr, mo, da, hh, mi, ss, ap] = iso;
+    hh = hh?+hh:0; mi = mi?+mi:0; ss = ss?+ss:0;
+    if(ap){ const isPM = /pm/i.test(ap); if(isPM && hh<12) hh+=12; if(!isPM && hh===12) hh=0; }
+    const d = new Date(+yr, +mo-1, +da, hh, mi, ss);
+    if(!isNaN(d.getTime())) return d;
+  }
+  const d = new Date(cleaned);
+  if(!isNaN(d.getTime())) return d;
   return null;
 }
 function money(n){
@@ -1479,6 +1567,16 @@ function egtBreakdown(){
   }
   return cats;
 }
+// Human-readable version of egtBreakdown(), shared by the desktop hover tooltip and the
+// mobile tap-to-alert fallback (native title="" tooltips don't fire on iOS Safari touch).
+function egtBreakdownText(){
+  if(!SURV) buildSurvival();
+  const b = egtBreakdown();
+  const L = {paid:'Paid', requested:'Requested', pifUnclaimed:'PIF unclaimed', defaulted:'Defaulted ×0.5', scheduled:'Scheduled ×W', open:'Open ×W×T'};
+  const lines = Object.keys(L).map(k => L[k] + ': ' + b[k].n + ' rows = ' + money(b[k].ev));
+  const survLine = 'W=' + (SURV.W==null?'n/a':(SURV.W*100).toFixed(1)+'%') + ' · warp=×' + SURV.warp.toFixed(2) + ' · resolved=' + SURV.resolvedN;
+  return lines.join(' · ') + '\n' + survLine;
+}
 /* Incident-time basis: the From clip timestamp is when the violation actually HAPPENED.
    All calendar/stats date math uses this, falling back to submission date for old rows. */
 function incidentDateOf(rec){ return parseDate(rec.clipFrom) || parseDate(rec.dateSubmitted); }
@@ -1493,11 +1591,29 @@ function isPaidInFullExact(rec){
   return (rec.hearingStatus||'').trim().toLowerCase() === 'paid in full';
 }
 function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+function normalizeDS(s){ return (s||'').toUpperCase().replace(/[^A-Z]/g,''); }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtDateMDY(d){ return `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`; } // M/D/YYYY, not zero-padded
 
 /* ============================== DATA MODEL ============================== */
 let appData = { merged: [], lastRefresh: null, changeLog: [], lastDiffCount: 0 };
+
+// DATASET_LABELS is an internal matching identifier — it MUST stay "MBT" because rec.dataset
+// gets set to this value and is compared (via normalizeDS) against the actual "Dataset" column
+// text in the Requested/Paid sheets, which will always literally say "MBT". Renaming it here
+// would silently break every Requested/Paid match for that identity. DATASET_DISPLAY is the
+// cosmetic-only label actually shown to the user — this is the one to rename.
+const DATASET_LABELS = { atnyc:'AT NYC', at:'AT', mbt:'MBT' };
+const DATASET_DISPLAY = { atnyc:'AT NYC', at:'AT', mbt:'Alt' };
+const DATASET_KEYS = { ATNYC:'atnyc', AT:'at', MBT:'mbt' }; // normalizeDS(label) -> config key
+
+// Shared dataset-badge markup — CSS class comes from the internal matching value (so styling
+// stays tied to the real identity), but the shown text is always the cosmetic DISPLAY label.
+function datasetBadge(dsValue){
+  const key = Object.keys(DATASET_LABELS).find(k => normalizeDS(DATASET_LABELS[k]) === normalizeDS(dsValue));
+  const shown = key ? DATASET_DISPLAY[key] : dsValue;
+  return `<span class="badge dataset-${normalizeDS(dsValue).toLowerCase()}">${esc(shown)}</span>`;
+}
 
 function fieldPick(row, ...keys){
   for(const k of keys){
@@ -1518,7 +1634,7 @@ const CONSUMED_KEYS = new Set(['complaintnumber','companyname','status','datesub
   'totalviolationamount','penaltyimposed','additionalpenalty','updatedat','from','to','latitude','longitude','balancedue']);
 function normKey(k){ return k.toLowerCase().replace(/[^a-z0-9]/g,''); }
 
-function normalizeMasterRow(row){
+function normalizeMasterRow(row, datasetKey){
   const company = fieldPick(row,'Company Name') || 'Unknown';
   const description = fieldPick(row,'Description');
   const _extra = {};
@@ -1526,6 +1642,7 @@ function normalizeMasterRow(row){
     if(!CONSUMED_KEYS.has(normKey(rk)) && row[rk]) _extra[rk.trim()] = row[rk];
   }
   return {
+    dataset: DATASET_LABELS[datasetKey],
     summons: fieldPick(row,'Summons Number','Summons #','SummonsNumber'),
     complaintNumber: fieldPick(row,'Complaint Number'),
     company: company,
@@ -1582,8 +1699,8 @@ function classifyRow(rec){
 async function loadAllData(silent){
   if(!silent) setStatus('Fetching latest data…', true);
   for(const k of Object.keys(fetchErrors)) delete fetchErrors[k];
-  const [masterRows, reqRows, paidRows, disqRows] = await Promise.all([
-    fetchCSV(CFG.gids.master,'Master'),
+  const [atnycRows, atRows, mbtRows, reqRows, paidRows, disqRows] = await Promise.all([
+    fetchCSV(CFG.gids.atnyc,'ATNYC'), fetchCSV(CFG.gids.at,'AT'), fetchCSV(CFG.gids.mbt,'MBT'),
     fetchCSV(CFG.gids.requested,'Requested'), fetchCSV(CFG.gids.paid,'Paid'),
     fetchCSV(CFG.gids.disqreasons,'DisqReasons')
   ]);
@@ -1595,54 +1712,67 @@ async function loadAllData(silent){
     const reason = fieldPick(r,'Disqualification Reason');
     if(cn && reason) disqMap[cn] = reason;
   }
-  console.log('[debug] rows fetched — Master:', masterRows&&masterRows.length, 'Requested:', reqRows&&reqRows.length, 'Paid:', paidRows&&paidRows.length);
+  console.log('[debug] rows fetched — ATNYC:', atnycRows&&atnycRows.length, 'AT:', atRows&&atRows.length, 'MBT:', mbtRows&&mbtRows.length, 'Requested:', reqRows&&reqRows.length, 'Paid:', paidRows&&paidRows.length);
 
+  const masterSets = { atnyc: atnycRows, at: atRows, mbt: mbtRows };
   // "Payment Request Email" is the actual date-requested column in the Requested tab
   // (a repurposed column that was never renamed) — do not look for "Payment Requested".
   const requested = (reqRows||[]).map(r => ({
     summons: fieldPick(r,'Summons Number','Summons #'),
-    requestedDate: fieldPick(r,'Payment Request Email','Payment Requested','Payment Request Date','Payment Request')
+    requestedDate: fieldPick(r,'Payment Request Email','Payment Requested','Payment Request Date','Payment Request'),
+    dataset: fieldPick(r,'Dataset')
   }));
   const paid = (paidRows||[]).map(r => ({
     summons: fieldPick(r,'Summons Number','Summons #'),
     paidToMe: numFrom(fieldPick(r,'Paid To Me')),
-    paidDate: fieldPick(r,'Payment Received','Payment Received Date')
+    paidDate: fieldPick(r,'Payment Received','Payment Received Date'),
+    dataset: fieldPick(r,'Dataset')
   }));
 
-  // One identity, so the join is just by summons number — no dataset disambiguation needed.
+  // index the logs once: "summons|DATASET" (and "summons|" for entries with no dataset label)
   const reqIdx = new Map(), paidIdx = new Map();
-  for(const r of requested) reqIdx.set(r.summons, r);
-  for(const p of paid) paidIdx.set(p.summons, p);
+  for(const r of requested) reqIdx.set(r.summons + '|' + (r.dataset ? normalizeDS(r.dataset) : ''), r);
+  for(const p of paid) paidIdx.set(p.summons + '|' + (p.dataset ? normalizeDS(p.dataset) : ''), p);
 
   let merged = [];
-  for(const raw of (masterRows||[])){
-    const rec = normalizeMasterRow(raw);
-    // Rows with no summons number yet (filed, but DEP hasn't issued a summons) are KEPT —
-    // they simply can't join the Paid/Requested logs or NYC enrichment until one exists.
-    if(!rec.summons && !rec.complaintNumber) continue; // truly empty row — unusable
-    const reqMatch = rec.summons ? reqIdx.get(rec.summons) : null;
-    const paidMatch = rec.summons ? paidIdx.get(rec.summons) : null;
-    rec._inPaidLog = !!paidMatch;
-    rec._inReqLog = !!reqMatch;
-    if(rec.complaintNumber && disqMap[rec.complaintNumber]) rec.disqualReason = disqMap[rec.complaintNumber];
-    if(paidMatch){ rec.paidToMe = paidMatch.paidToMe; rec.paidDate = paidMatch.paidDate; }
-    if(reqMatch){ rec.requestedDate = reqMatch.requestedDate; }
-    classifyRow(rec);
-    rec._block = parseBlock(rec.location);
-    rec._hotBlock = hotBlockOf(rec._block) || hotBlockRawOf(rec.location);
-    rec.offense = offenseFor(rec);
-    rec.payout = computePayout(rec.paidAmount || rec.violationAmount);
-    merged.push(rec);
+  for(const key of Object.keys(masterSets)){
+    const rows = masterSets[key];
+    if(!rows) continue;
+    const label = DATASET_LABELS[key];
+    for(const raw of rows){
+      const rec = normalizeMasterRow(raw, key);
+      // Rows with no summons number yet (filed, but DEP hasn't issued a summons) are KEPT —
+      // they simply can't join the Paid/Requested logs or NYC enrichment until one exists.
+      if(!rec.summons && !rec.complaintNumber) continue; // truly empty identity — unusable
+      const reqMatch = rec.summons ? (reqIdx.get(rec.summons + '|' + normalizeDS(label)) || reqIdx.get(rec.summons + '|')) : null;
+      const paidMatch = rec.summons ? (paidIdx.get(rec.summons + '|' + normalizeDS(label)) || paidIdx.get(rec.summons + '|')) : null;
+      rec._inPaidLog = !!paidMatch;
+      rec._inReqLog = !!reqMatch;
+      if(rec.complaintNumber && disqMap[rec.complaintNumber]) rec.disqualReason = disqMap[rec.complaintNumber];
+      if(paidMatch){ rec.paidToMe = paidMatch.paidToMe; rec.paidDate = paidMatch.paidDate; }
+      if(reqMatch){ rec.requestedDate = reqMatch.requestedDate; }
+      classifyRow(rec);
+      rec._block = parseBlock(rec.location);
+      rec._hotBlock = hotBlockOf(rec._block) || hotBlockRawOf(rec.location);
+      rec.offense = offenseFor(rec);
+      rec.payout = computePayout(rec.paidAmount || rec.violationAmount);
+      merged.push(rec);
+    }
   }
   const extraHeaders = new Set();
   for(const r of merged){ if(r._extra) for(const k of Object.keys(r._extra)) extraHeaders.add(k); }
-  console.log('[extras] columns detected in master sheet:', extraHeaders.size ? [...extraHeaders].sort().join(', ') : 'NONE — check the sheet headers');
+  console.log('[extras] columns detected in master sheets:', extraHeaders.size ? [...extraHeaders].sort().join(', ') : 'NONE — check the sheet headers');
   const noReason = merged.filter(r => r._rowType === 'disqualified' && (!r.disqualReason || r.disqualReason === 'Disqualified (reason not specified)'));
   if(noReason.length) console.log('[disq] ' + noReason.length + ' disqualified complaints have no entry in the Disqualification Reasons tab. Sample complaint numbers:', noReason.slice(0,20).map(r=>r.complaintNumber).join(', '));
-  console.log('[debug] merged total:', merged.length);
+  console.log('[debug] merged total:', merged.length, 'by dataset:', {
+    AT: merged.filter(r=>normalizeDS(r.dataset)===normalizeDS('AT')).length,
+    'AT NYC': merged.filter(r=>normalizeDS(r.dataset)===normalizeDS('AT NYC')).length,
+    MBT: merged.filter(r=>normalizeDS(r.dataset)===normalizeDS('MBT')).length
+  });
 
   if(CFG.enrich !== 'off'){
     await enrichFromNYC(merged);
+    carryForwardFailedEnrichment(merged);
     // re-classify after enrichment in case hearing_result changed to/from "dismissed",
     // and re-derive offense tiers now that real dollar amounts are in
     for(const rec of merged){ classifyRow(rec); rec.offense = offenseFor(rec); }
@@ -1674,14 +1804,14 @@ async function loadAllData(silent){
 const CHANGE_LABELS = { new:'New Complaint', summons_assigned:'Summons Assigned', hearing_status:'Hearing Status', hearing_result:'Hearing Result', payment_amount:'Payment Amount' };
 const CHANGE_LOG_CAP = 800;
 
-function diffKey(r){ return r.summons || 'c:' + (r.complaintNumber||''); }
+function diffKey(r){ return r.dataset + '|' + (r.summons || 'c:' + (r.complaintNumber||'')); }
 
 function diffAgainstPrevious(merged){
   const prev = appData.merged || [];
   if(!prev.length){ appData.lastDiffCount = 0; return; } // first-ever load: nothing to diff against
   const prevMap = new Map(prev.map(r => [diffKey(r), r]));
   const prevByComplaint = new Map();
-  for(const r of prev){ if(r.complaintNumber) prevByComplaint.set('c:' + r.complaintNumber, r); }
+  for(const r of prev){ if(r.complaintNumber) prevByComplaint.set(r.dataset + '|c:' + r.complaintNumber, r); }
   const ts = new Date().toISOString();
   const changes = [];
   for(const rec of merged){
@@ -1689,13 +1819,13 @@ function diffAgainstPrevious(merged){
     // A complaint that just received its summons changes diff key — find it by complaint number
     // and log that graduation as its own change type instead of a phantom "new complaint".
     if(!old && rec.summons && rec.complaintNumber){
-      const byComplaint = prevByComplaint.get('c:' + rec.complaintNumber);
+      const byComplaint = prevByComplaint.get(rec.dataset + '|c:' + rec.complaintNumber);
       if(byComplaint && !byComplaint.summons){
         old = byComplaint;
-        changes.push({ ts, type:'summons_assigned', summons: rec.summons, company: rec.company, before:'(no summons)', after: rec.summons });
+        changes.push({ ts, type:'summons_assigned', dataset: rec.dataset, summons: rec.summons, company: rec.company, before:'(no summons)', after: rec.summons });
       }
     }
-    const base = { ts, summons: rec.summons || ('Complaint ' + rec.complaintNumber), company: rec.company };
+    const base = { ts, dataset: rec.dataset, summons: rec.summons || ('Complaint ' + rec.complaintNumber), company: rec.company };
     if(!old){
       changes.push(Object.assign({type:'new', before:'', after:''}, base));
       continue;
@@ -1704,6 +1834,21 @@ function diffAgainstPrevious(merged){
       changes.push(Object.assign({type:'hearing_status', before: old.hearingStatus||'—', after: rec.hearingStatus||'—'}, base));
     if((old.hearingResult||'') !== (rec.hearingResult||''))
       changes.push(Object.assign({type:'hearing_result', before: old.hearingResult||'—', after: rec.hearingResult||'—'}, base));
+    // A confirmed nonzero paidAmount reverting to 0 is almost always a transient miss — the
+    // sheet's own "Paid Amount" column read blank mid-edit by whatever external process
+    // populates it, or this row's enrichFromNYC batch hit a network hiccup and silently fell
+    // through to the (blank) sheet value — not a real DEP reversal. Confirmed 8/22/2026 via
+    // summons 000971783P: the Changes tab logged "$350.00 → $0.00", but a live query against
+    // jz4z-kudi for that exact ticket showed paid_amount "350", hearing_status "PAID IN FULL",
+    // compliance_status "All Terms Met" — nothing on NYC's end had changed. Genuine reversals
+    // (refunds, vacated judgments) would also flip hearingStatus/complianceStatus, which this
+    // guard doesn't touch, so a real one still surfaces via those change types. Carry the old
+    // value forward instead of logging a false regression and quietly undercounting the row
+    // in the EGT until the next successful refresh.
+    if(!rec.paidAmount && old.paidAmount){
+      rec.paidAmount = old.paidAmount;
+      rec.payout = computePayout(rec.paidAmount || rec.violationAmount);
+    }
     if((old.paidAmount||0) !== (rec.paidAmount||0))
       changes.push(Object.assign({type:'payment_amount', before: money(old.paidAmount||0), after: money(rec.paidAmount||0)}, base));
   }
@@ -1727,40 +1872,210 @@ function renderErrorBanner(){
     '<br>Check that each tab is published to the web (File → Share → Publish to web) and that the gid in Settings matches that tab, then hit Clear Cached Data to retry.';
 }
 
+// Rows whose batch never got live NYC data this refresh (kept at whatever the sheet had
+// cached), even after the retry below — tracked so a stuck-stale row like "New Money"
+// silently missing a paid-in-full ticket is explainable instead of mysterious. Reset at the
+// top of each enrichFromNYC() call.
+let enrichStaleCount = 0;
+function getEnrichStaleCount(){ return enrichStaleCount; }
+async function enrichFromNYCBatch(batch){
+  const list = batch.map(r => `'${r.summons}'`).join(',');
+  // The dataset's actual join column is "ticket_number", NOT "summons_number" — querying by
+  // summons_number throws a SOQL "no such column" error (HTTP 400). Since `if(!res.ok)
+  // continue` silently skipped the batch on any non-2xx response, live NYC enrichment has
+  // been failing on every single refresh: everything shown was just the sheet's own stale
+  // cached hearing_status/hearing_result/paid_amount, never actually re-checked against NYC.
+  // Confirmed live 8/6/2026: summons 000997229N is HTTP 400 on summons_number, but querying
+  // ticket_number='000997229N' returns real current data (hearing_status: "PAID IN FULL").
+  const url = `https://data.cityofnewyork.us/resource/jz4z-kudi.json?$where=ticket_number in (${list})&$limit=${batch.length}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const apiRows = await res.json();
+  for(const row of apiRows){
+    const rec = batch.find(r => r.summons === row.ticket_number);
+    if(!rec) continue;
+    if(row.hearing_status) rec.hearingStatus = row.hearing_status;
+    if(row.hearing_result) rec.hearingResult = row.hearing_result;
+    if(row.compliance_status) rec.complianceStatus = row.compliance_status;
+    if(row.paid_amount) rec.paidAmount = numFrom(row.paid_amount);
+    if(row.total_violation_amount) rec.violationAmount = numFrom(row.total_violation_amount);
+    if(row.penalty_imposed) rec.penaltyImposed = numFrom(row.penalty_imposed);
+    if(row.balance_due !== undefined && row.balance_due !== null && row.balance_due !== '') rec.balanceDue = numFrom(row.balance_due);
+    rec.payout = computePayout(rec.paidAmount || rec.violationAmount);
+    rec._liveConfirmed = true; // this row's fields came from an actual NYC check this refresh, not just the sheet's raw column
+  }
+}
 async function enrichFromNYC(records){
+  enrichStaleCount = 0;
   const withSummons = records.filter(r => r.summons);
   const batchSize = 50;
   for(let i=0;i<withSummons.length;i+=batchSize){
     const batch = withSummons.slice(i, i+batchSize);
-    const list = batch.map(r => `'${r.summons}'`).join(',');
-    // The dataset's actual join column is "ticket_number", NOT "summons_number" — querying by
-    // summons_number throws a SOQL "no such column" error (HTTP 400). Since `if(!res.ok)
-    // continue` silently skipped the batch on any non-2xx response, live NYC enrichment has
-    // been failing on every single refresh: everything shown was just the sheet's own stale
-    // cached hearing_status/hearing_result/paid_amount, never actually re-checked against NYC.
-    // Confirmed live 8/6/2026: summons 000997229N is HTTP 400 on summons_number, but querying
-    // ticket_number='000997229N' returns real current data (hearing_status: "PAID IN FULL").
-    const url = `https://data.cityofnewyork.us/resource/jz4z-kudi.json?$where=ticket_number in (${list})&$limit=${batchSize}`;
+    // One retry on failure — a single flaky batch (network blip, Socrata hiccup) used to
+    // silently leave up to 50 rows on stale sheet-cached status for the whole refresh, with
+    // no signal anything was wrong. Confirmed 8/22/2026: summons 000860836H sat stuck on a
+    // stale "HEARING COMPLETED" while NYC's live record already showed "PAID IN FULL" —
+    // which is exactly why "New Money" felt inconsistent refresh to refresh: it wasn't the
+    // real-world data changing, it was enrichment coverage silently varying each time.
     try{
-      const res = await fetch(url);
-      if(!res.ok) continue;
-      const apiRows = await res.json();
-      for(const row of apiRows){
-        const rec = batch.find(r => r.summons === row.ticket_number);
-        if(!rec) continue;
-        if(row.hearing_status) rec.hearingStatus = row.hearing_status;
-        if(row.hearing_result) rec.hearingResult = row.hearing_result;
-        if(row.compliance_status) rec.complianceStatus = row.compliance_status;
-        if(row.paid_amount) rec.paidAmount = numFrom(row.paid_amount);
-        if(row.total_violation_amount) rec.violationAmount = numFrom(row.total_violation_amount);
-        if(row.penalty_imposed) rec.penaltyImposed = numFrom(row.penalty_imposed);
-        if(row.balance_due !== undefined && row.balance_due !== null && row.balance_due !== '') rec.balanceDue = numFrom(row.balance_due);
-        rec.payout = computePayout(rec.paidAmount || rec.violationAmount);
-      }
+      await enrichFromNYCBatch(batch);
     }catch(e){
-      console.warn('NYC enrichment batch failed (continuing with sheet data)', e);
+      try{
+        await enrichFromNYCBatch(batch);
+      }catch(e2){
+        console.warn('NYC enrichment batch failed twice (continuing with sheet data)', e2);
+        enrichStaleCount += batch.length;
+        for(const rec of batch) rec._enrichFailed = true;
+      }
     }
   }
+  if(enrichStaleCount) console.warn('[enrich]', enrichStaleCount, 'of', withSummons.length, 'rows kept stale sheet data this refresh (NYC batch fetch failed twice)');
+}
+// When a row's batch failed enrichment entirely this refresh, `merged` currently holds
+// whatever the SHEET's own raw hearing_status/paid_amount column says — which can be far
+// staler than what live NYC already confirmed on a PAST successful refresh (the sheet's own
+// copy is populated by a separate, slower process). Falling back to it silently un-does a
+// real, already-confirmed fact. Confirmed 8/22/2026: summons 000922319K was correctly caught
+// as paid on one refresh (live enrichment succeeded), then reverted to the sheet's stale
+// "DEFAULTED" on a later refresh when that row's batch failed — exactly the "found it once,
+// gone next time" pattern. Carry forward the last successfully-known fields instead — but
+// ONLY when the old value was itself a confirmed live NYC check (`_liveConfirmed`), never
+// just leftover raw sheet data. A genuine sheet-level edit (the user's own tracking process
+// updating that column) must still win over an older, never-verified sheet snapshot.
+function carryForwardFailedEnrichment(merged){
+  const prev = appData.merged || [];
+  if(!prev.length) return;
+  const prevMap = new Map(prev.map(r => [diffKey(r), r]));
+  for(const rec of merged){
+    if(!rec._enrichFailed) continue;
+    const old = prevMap.get(diffKey(rec));
+    delete rec._enrichFailed;
+    if(!old || !old._liveConfirmed) continue;
+    rec._liveConfirmed = true;
+    rec.hearingStatus = old.hearingStatus;
+    rec.hearingResult = old.hearingResult;
+    rec.complianceStatus = old.complianceStatus;
+    rec.paidAmount = old.paidAmount;
+    rec.violationAmount = old.violationAmount;
+    rec.penaltyImposed = old.penaltyImposed;
+    rec.balanceDue = old.balanceDue;
+    rec.payout = computePayout(rec.paidAmount || rec.violationAmount);
+  }
+}
+
+/* ============================== "REALLY GOOD REFRESH" ============================== */
+/* Live-checks every row NYC has already reviewed (a hearing has happened) but that hasn't
+   been paid yet against the real-time ECB ticket-finder portal (a820-ecbticketfinder.nyc.gov)
+   instead of trusting the bulk jz4z-kudi dataset, which has been repeatedly confirmed to sit
+   wrong for YEARS on already-resolved tickets — not just a day behind (see CLAUDE.md,
+   8/22/2026: 000742034Z's hearing was in March 2023 and the bulk dataset still shows it
+   DEFAULTED today, while the portal shows PAID IN FULL / $0 balance). Scoped to 'defaulted'
+   rows plus 'scheduled' rows whose hearing date has already passed — not all ~2,000+
+   summons-bearing rows — since that's the reviewed-but-unresolved set the bulk dataset keeps
+   getting wrong, and the portal only supports one summons per request (no bulk mode like
+   jz4z-kudi's $where...in()) — checking everything would take far too long. Runs with bounded
+   concurrency through the same CORS-proxy
+   fallback chain fetchCSV uses, since the portal sets no CORS headers (confirmed via curl:
+   no Access-Control-Allow-Origin on either GET or POST). The endpoint is a GET-friendly
+   Struts action — `?searchViolationObject.violationNo=X&searchViolationObject.searchType=
+   violationNumber` returns the exact same detail page the "New Search" form POSTs to. */
+const PORTAL_CONCURRENCY = 8;
+function parsePortalDetail(html){
+  if(/No Record Available/i.test(html)) return null; // genuinely not found on the portal
+  const statusM = html.match(/Status of Summons\/Notice:[\s\S]{0,40}?<td>\s*([A-Z][A-Z \/]*)/i);
+  const balanceM = html.match(/Balance Due:[\s\S]{0,60}?<td>\s*([\d,.]+)/i);
+  const resultM = html.match(/Hearing Result:[\s\S]{0,40}?<td[^>]*>\s*([^<]*)<\/td>/i);
+  if(!statusM) return null; // page loaded but didn't have the "More Details" section — nothing usable
+  return {
+    status: statusM[1].trim(),
+    balanceDue: balanceM ? numFrom(balanceM[1]) : null,
+    hearingResult: resultM ? resultM[1].trim() : null
+  };
+}
+async function fetchPortalDetail(summons){
+  const url = `https://a820-ecbticketfinder.nyc.gov/getViolationbyID.action?searchViolationObject.violationNo=${encodeURIComponent(summons)}&searchViolationObject.searchType=violationNumber`;
+  const attempts = [
+    () => fetchWithTimeout(url, 9000),
+    () => fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url), 9000),
+    () => fetchWithTimeout('https://corsproxy.io/?url=' + encodeURIComponent(url), 9000),
+    () => fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(url), 9000)
+  ];
+  for(const attempt of attempts){
+    try{
+      const res = await attempt();
+      if(!res.ok) continue;
+      const text = await res.text();
+      if(text && text.trim()) return parsePortalDetail(text);
+    }catch(e){ /* try next proxy */ }
+  }
+  return undefined; // every attempt failed to even load — distinct from null ("no record")
+}
+async function runReallyGoodRefresh(){
+  const btn = document.getElementById('btn-really-good-refresh');
+  const wrap = document.getElementById('rgr-bar-wrap');
+  const fill = document.getElementById('rgr-bar-fill');
+  const text = document.getElementById('rgr-bar-text');
+  // "Reviewed but not yet paid": defaulted rows, plus 'scheduled' rows whose hearing date has
+  // already passed (categorize() lumps any row with a hearingDate into 'scheduled' regardless
+  // of whether that date is future or past — a past one means NYC already reviewed it, it just
+  // didn't land in the 'defaulted' bucket, e.g. 000862446L's "HEARING COMPLETED"). Excludes
+  // 'open' (no hearing yet — nothing to check) and 'pifUnclaimed' (already known paid). Order
+  // is shuffled each run so an interrupted or partial run (this can take 10+ minutes) still
+  // samples across the whole set over time instead of always grinding through the same prefix.
+  const now = Date.now();
+  const targets = appData.merged.filter(r => {
+    if(!r.summons) return false;
+    const cat = categorize(r);
+    if(cat === 'defaulted') return true;
+    if(cat === 'scheduled'){ const hd = parseDate(r.hearingDate); return hd && hd.getTime() < now; }
+    return false;
+  });
+  for(let i = targets.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [targets[i], targets[j]] = [targets[j], targets[i]];
+  }
+  if(!targets.length){ alert('Nothing reviewed-but-unpaid to check right now.'); return; }
+  btn.disabled = true;
+  wrap.classList.add('active');
+  let done = 0, updated = 0, failed = 0;
+  const updateProgress = () => {
+    fill.style.width = (done/targets.length*100).toFixed(0) + '%';
+    text.textContent = `${done} / ${targets.length}${updated ? ' · ' + updated + ' fixed' : ''}`;
+  };
+  updateProgress();
+  let idx = 0;
+  async function worker(){
+    while(idx < targets.length){
+      const rec = targets[idx++];
+      const detail = await fetchPortalDetail(rec.summons);
+      if(detail === undefined) failed++;
+      else if(detail && detail.status && detail.status !== rec.hearingStatus){
+        const beforeStatus = rec.hearingStatus || '—';
+        rec.hearingStatus = detail.status;
+        if(detail.hearingResult) rec.hearingResult = detail.hearingResult;
+        if(detail.balanceDue != null) rec.balanceDue = detail.balanceDue;
+        rec._liveConfirmed = true;
+        rec.payout = computePayout(rec.paidAmount || rec.violationAmount);
+        classifyRow(rec);
+        rec.offense = offenseFor(rec);
+        updated++;
+        appData.changeLog.unshift({ ts: new Date().toISOString(), dataset: rec.dataset, summons: rec.summons, company: rec.company, type:'hearing_status', before: beforeStatus, after: rec.hearingStatus });
+      }
+      done++;
+      updateProgress();
+    }
+  }
+  await Promise.all(Array.from({length: Math.min(PORTAL_CONCURRENCY, targets.length)}, worker));
+  appData.changeLog = appData.changeLog.slice(0, CHANGE_LOG_CAP);
+  appData.lastDiffCount = updated;
+  appData.lastRefresh = new Date().toISOString();
+  SURV = null;
+  btn.disabled = false;
+  wrap.classList.remove('active');
+  persistCache();
+  renderAll();
+  setStatus('Really Good Refresh complete', false);
+  alert(`Checked ${targets.length} reviewed-but-unpaid rows against the live NYC portal.\n${updated} were actually already resolved — totals updated.${failed ? '\n' + failed + ' could not be checked (network issue) — try again later.' : ''}`);
 }
 
 /* IndexedDB key-value store: the real fix for the storage-trim problem. localStorage caps at
@@ -1770,7 +2085,7 @@ function idbOpen(){
   return new Promise(res => {
     if(typeof indexedDB === 'undefined') return res(null);
     try{
-      const rq = indexedDB.open('truckNarcBasicDB', 1);
+      const rq = indexedDB.open('truckNarcDB', 1);
       rq.onupgradeneeded = () => rq.result.createObjectStore('kv');
       rq.onsuccess = () => res(rq.result);
       rq.onerror = () => res(null);
@@ -2026,6 +2341,7 @@ const HOME_COLUMNS = [
       return d ? `<span title="From ${esc(r.clipFrom)||'(submission date)'}${r.clipTo?' · To '+esc(r.clipTo):''}">${d.toLocaleDateString()} ${d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}</span>` : '—';
     } },
   { k:'complaintNumber', label:'Complaint #',      extra:false, render:r => complaintCell(r) },
+  { k:'dataset',         label:'Dataset',          extra:false, render:r => datasetBadge(r.dataset) },
   { k:'summons',         label:'Summons #',        extra:false, render:r => esc(r.summons)||'—' },
   { k:'company',         label:'Company',          extra:false, render:r => {
       const c = r.company || '';
@@ -2104,7 +2420,7 @@ function dynamicExtraCols(){
 function searchScore(rec, q){
   if(!q) return 1;
   q = q.toLowerCase();
-  const fields = [rec.company, rec.companyNorm, rec.summons, rec.complaintNumber, rec.licensePlate, rec.location, rec.description];
+  const fields = [rec.company, rec.companyNorm, rec.summons, rec.complaintNumber, rec.licensePlate, rec.location, rec.description, rec.dataset];
   let score = 0;
   for(const f of fields){
     if(!f) continue;
@@ -2118,12 +2434,14 @@ function searchScore(rec, q){
 
 function renderHome(){
   const q = document.getElementById('home-search').value.trim();
+  const dsFilter = document.getElementById('home-filter-dataset').value;
   const statusFilter = document.getElementById('home-filter-status').value;
   const showExtra = document.getElementById('home-expand').checked;
   const cols = HOME_COLUMNS.filter(c => showExtra || !c.extra).concat(showExtra ? dynamicExtraCols() : []);
   EST_HEARING = getLagModels().hearing;
 
   let rows = appData.merged.slice();
+  if(dsFilter) rows = rows.filter(r => normalizeDS(r.dataset) === normalizeDS(dsFilter));
   if(statusFilter) rows = rows.filter(r => r._rowType === statusFilter);
 
   if(q){
@@ -2201,12 +2519,16 @@ function renderHomeStats(){
   const estGrandTotal = all.reduce((s,r) => s + expectedPayoutFor(r), 0);
   const eligibleCount = all.filter(r => r._rowType !== 'disqualified' && r._rowType !== 'dismissed').length;
 
+  const byDataset = { AT:0, 'AT NYC':0, MBT:0 };
+  all.forEach(r => { const k = Object.keys(byDataset).find(k=>normalizeDS(k)===normalizeDS(r.dataset)); if(k) byDataset[k]++; });
+
   stats.innerHTML = `
-    <div class="stat-card"><div class="label">Total Complaints</div><div class="value blue">${total.toLocaleString()}</div><div class="sub">every status</div></div>
+    <div class="stat-card"><div class="label">Total Complaints</div><div class="value blue">${total.toLocaleString()}</div><div class="sub">every status, all identities</div></div>
     <div class="stat-card"><div class="label">Paid</div><div class="value success">${paidCount.toLocaleString()}</div><div class="sub">${money(totalCollected)} collected</div></div>
     <div class="stat-card"><div class="label">Pending Amount</div><div class="value orange">${money(pendingAmount)}</div><div class="sub">${requestedRows.length} requested, not yet received</div></div>
     <div class="stat-card"><div class="label">Paid + Pending</div><div class="value blue">${money(paidPlusPending)}</div><div class="sub">in hand or in the pipeline</div></div>
-    <div class="stat-card" title="${(() => { const b = egtBreakdown(); const L = {paid:'Paid', requested:'Requested', pifUnclaimed:'PIF unclaimed', defaulted:'Defaulted ×0.5', scheduled:'Scheduled ×W', open:'Open ×W×T'}; return Object.keys(L).map(k => L[k] + ': ' + b[k].n + ' rows = ' + money(b[k].ev)).join(' · '); })()}"><div class="label">Estimated Grand Total</div><div class="value orange">${money(estGrandTotal)}</div><div class="sub">hover for the full breakdown · ${eligibleCount.toLocaleString()} live rows</div></div>
+    <div class="stat-card" title="${esc(egtBreakdownText())}" onclick="alert(egtBreakdownText())" style="cursor:pointer;"><div class="label">Estimated Grand Total</div><div class="value orange">${money(estGrandTotal)}</div><div class="sub">hover or tap for the full breakdown · ${eligibleCount.toLocaleString()} live rows</div></div>
+    <div class="stat-card"><div class="label">By Dataset</div><div class="value blue" style="font-size:.95em;">AT ${byDataset.AT} · AT NYC ${byDataset['AT NYC']} · Alt ${byDataset.MBT}</div></div>
   `;
 }
 
@@ -2220,8 +2542,9 @@ function renderNewMoney(){
   const newMoney = getNewMoneyRows();
   const tbody1 = document.querySelector('#newmoney-table tbody');
   tbody1.innerHTML = newMoney.map(r => `
-    <tr><td>${esc(r.summons)}</td><td>${complaintCell(r)}</td><td>${esc(r.company)}</td><td>${money(r.paidAmount)}</td><td>${money(r.payout)}</td><td>${esc(r.hearingDate)||'—'}</td></tr>`
-  ).join('') || `<tr><td colspan="6" class="empty">Nothing new right now.</td></tr>`;
+    <tr><td>${datasetBadge(r.dataset)}</td>
+    <td>${esc(r.summons)}</td><td>${complaintCell(r)}</td><td>${esc(r.company)}</td><td>${money(r.paidAmount)}</td><td>${money(r.payout)}</td><td>${esc(r.hearingDate)||'—'}</td></tr>`
+  ).join('') || `<tr><td colspan="7" class="empty">Nothing new right now.</td></tr>`;
 
   const payLag = getLagModels().payment;
   const avgLag = payLag.avg;
@@ -2248,11 +2571,12 @@ function renderNewMoney(){
         forecastCell = `<span class="est" title="Already past the current ${Math.round(curLag.days)}d lag. Revised using the ${r._forecastN} of your last 24 months' requests that also took at least ${r._daysWaiting}d (they landed around ${revisedTotalLag}d total) — and bumped forward if needed to stay no earlier than an earlier-filed request's estimate.">~${r._forecast.toLocaleDateString()}</span>`;
       }
     }
-    return `<tr><td>${esc(r.summons)}</td><td>${esc(r.company)}</td><td>${esc(r.requestedDate)||'—'}</td>
+    return `<tr><td>${datasetBadge(r.dataset)}</td>
+      <td>${esc(r.summons)}</td><td>${esc(r.company)}</td><td>${esc(r.requestedDate)||'—'}</td>
       <td>${money(r._expected)}</td>
       <td>${r._daysWaiting>=0 ? r._daysWaiting : '—'}</td>
       <td>${forecastCell}</td></tr>`;
-  }).join('') || `<tr><td colspan="6" class="empty">No pending requests.</td></tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty">No pending requests.</td></tr>`;
 
   document.getElementById('newmoney-stats').innerHTML = `
     <div class="stat-card"><div class="label">New Money Available</div><div class="value success">${newMoney.length}</div></div>
@@ -2269,8 +2593,13 @@ function renderNewMoney(){
 function buildExportGroups(){
   const eligible = appData.merged.filter(r => !r._inPaidLog && !r._inReqLog && isPaidInFullExact(r));
   const groups = [];
-  for(let i=0; i<eligible.length; i+=8){
-    groups.push({ rows: eligible.slice(i, i+8) });
+  for(const dsKey of ['atnyc','at','mbt']){
+    const label = DATASET_LABELS[dsKey]; // matching value — must stay the real sheet identity
+    const displayLabel = DATASET_DISPLAY[dsKey]; // what's actually shown to the user
+    const list = eligible.filter(r => normalizeDS(r.dataset) === normalizeDS(label));
+    for(let i=0; i<list.length; i+=8){
+      groups.push({ dsKey, label, displayLabel, rows: list.slice(i, i+8) });
+    }
   }
   groups.forEach((g, idx) => g.number = idx + 1);
   return groups;
@@ -2294,7 +2623,7 @@ function renderExportModal(){
   const today = new Date();
   const dateStr = fmtDateMDY(today);
   body.innerHTML = groups.map(g => {
-    const vendor = CFG.vendor || {code:'', name:'', address:''};
+    const vendor = CFG.vendors[g.dsKey] || {code:'', name:'', address:''};
     const summonsList = g.rows.map(r => r.summons).join('\n');
     const subject = `Complaint Payment ${dateStr}${multi ? ' #' + g.number : ''}`;
     const emailBody = `Hello, I am the citizen who submitted the complaint for the following paid summons through the Citizens Air Complaint Program:\n\nVendor Code: ${vendor.code}\n${vendor.name}\nMailing address: ${vendor.address}\n\n${summonsList}`;
@@ -2302,7 +2631,7 @@ function renderExportModal(){
     const suffix = multi ? ` - #${g.number}` : '';
     const sheetData = g.rows.map(r => `${r.summons}\t${dateStr}${suffix}`).join('\n');
     return `<div class="export-group">
-      <b>Group ${g.number} <span class="tag" style="font-weight:600; font-size:.7em; background:var(--panel2); padding:2px 8px; border-radius:12px; color:var(--dim);">${g.rows.length} summons${g.rows.length===1?'':'es'}</span></b>
+      <b>Group ${g.number} — ${esc(g.displayLabel)} <span class="tag" style="font-weight:600; font-size:.7em; background:var(--panel2); padding:2px 8px; border-radius:12px; color:var(--dim);">${g.rows.length} summons${g.rows.length===1?'':'es'}</span></b>
       ${copyBlockHTML('Email Subject', subject, `exp-subj-${g.number}`)}
       ${copyBlockHTML('Email Body', emailBody, `exp-body-${g.number}`)}
       ${copyBlockHTML('Gmail Search String', gmailSearch, `exp-gmail-${g.number}`)}
@@ -2329,9 +2658,10 @@ function renderDiscrepancies(){
   );
   document.getElementById('disc-count').textContent = flagged.length + ' flagged';
   document.querySelector('#disc-table tbody').innerHTML = flagged.map(r => `
-    <tr><td>${esc(r.summons)}</td><td>${esc(r.company)}</td><td>${money(r.paidAmount)}</td>
+    <tr><td>${datasetBadge(r.dataset)}</td>
+    <td>${esc(r.summons)}</td><td>${esc(r.company)}</td><td>${money(r.paidAmount)}</td>
     <td>${esc(r.hearingStatus)||'—'}</td><td>${esc(r.complianceStatus)||'—'}</td></tr>`
-  ).join('') || `<tr><td colspan="5" class="empty">Nothing to reconcile — clean.</td></tr>`;
+  ).join('') || `<tr><td colspan="6" class="empty">Nothing to reconcile — clean.</td></tr>`;
 
 }
 
@@ -2342,9 +2672,10 @@ function renderTimestampAnomalies(){
     const r = x.rec;
     const days = Math.floor(x.impliedMin/1440), hrs = Math.floor((x.impliedMin%1440)/60), mins = Math.round(x.impliedMin%60);
     const durStr = (days?days+'d ':'') + (hrs?hrs+'h ':'') + mins+'m';
-    return `<tr><td>${esc(r.summons)||'—'}</td><td>${complaintCell(r)}</td>
+    return `<tr><td>${datasetBadge(r.dataset)}</td>
+      <td>${esc(r.summons)||'—'}</td><td>${complaintCell(r)}</td>
       <td>${x.from.toLocaleString()}</td><td>${esc(r.clipTo)}</td><td>${durStr}</td></tr>`;
-  }).join('') || `<tr><td colspan="5" class="empty">No timestamp anomalies found — clean.</td></tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty">No timestamp anomalies found — clean.</td></tr>`;
 }
 
 /* ============================== RENDER: CALENDAR ============================== */
@@ -2352,7 +2683,7 @@ let calCursor = new Date();
 let calSelectedDay = null;
 let calUserNavigated = false;
 let weatherToken = 0;
-const LS_WEATHER = 'truckNarcBasicWeather';
+const LS_WEATHER = 'truckNarcWeather';
 
 /* Daily NYC hi/lo temps + precipitation/snowfall from Open-Meteo's free archive (no key
    needed). Past months are immutable so they cache forever; the current month refreshes
@@ -2629,7 +2960,9 @@ function renderStatsAnnualIncome(){
 }
 
 function renderCalendar(){
-  const rows = appData.merged.slice();
+  const dsFilter = document.getElementById('cal-filter-dataset').value;
+  let rows = appData.merged.slice();
+  if(dsFilter) rows = rows.filter(r => normalizeDS(r.dataset) === normalizeDS(dsFilter));
 
   const byDayAll = calDayBuckets(rows); // all months — needed for weekday averages + last-year comparison
   // On first view, land on the most recent month that actually HAS data (e.g. July if August is empty)
@@ -2823,6 +3156,7 @@ function renderCalendar(){
         return `<div class="chg-item">
           <div class="when">${e.from.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}${(e.to>e.from)?'–'+e.to.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}):''}</div>
           <div class="what">
+            ${datasetBadge(r.dataset)}
             <span class="badge ${bucketBadgeClass(r._rowType)}">${bucketLabel(r._rowType)}</span>
             ${r.offense>1?`<span class="badge disq">${r.offense===2?'2nd':'3rd'} offense</span>`:''}
             <b>${esc(r.summons || ('Complaint ' + r.complaintNumber))}</b> · ${esc(r.company)}
@@ -2943,7 +3277,7 @@ function renderStats(){
   const all = appData.merged;
   const RESOLVED = { paid:1, requested:1, disqualified:1, dismissed:1 };
 
-  /* --- Success funnel: one stacked bar (single identity, no per-dataset breakdown) --- */
+  /* --- Success funnel: overall + per identity, stacked bars --- */
   const FUNNEL_ORDER = [
     ['paid','#218a4c','Paid'], ['requested','#e0aa2e','Requested'], ['submitted','#9b7fe0','Submitted'],
     ['indefault','#c2703d','In Default'], ['none','#7fb3e8','Open'],
@@ -2965,7 +3299,9 @@ function renderStats(){
     }).join('');
     return `<div style="margin-bottom:12px;"><b style="font-size:.85em;">${esc(label)} — ${rows.length.toLocaleString()} filings</b><div class="stack">${segs}</div><div class="stack-legend">${legend}</div></div>`;
   };
-  document.getElementById('stats-funnel').innerHTML = funnelRow('All Filings', all);
+  document.getElementById('stats-funnel').innerHTML =
+    funnelRow('All Identities', all) +
+    [['AT','AT'],['AT NYC','AT NYC'],['MBT','Alt']].map(([match,label]) => funnelRow(label, all.filter(r => normalizeDS(r.dataset)===normalizeDS(match)))).join('');
 
   /* --- Hearings scoreboard: lifetime live snapshot --- */
   // "Probably will never pay" reuses the grand formula's own survival curve rather than a
@@ -3057,16 +3393,18 @@ function renderStats(){
     const start = new Date(from); start.setMinutes(0,0,0);
     for(let t = start.getTime(); t <= to.getTime(); t += 3600000){
       const h = new Date(t);
-      const key = localDayKey(h) + 'T' + h.getHours();
+      // keyed per dataset — an hour block never merges incidents across two identities
+      const key = localDayKey(h) + 'T' + h.getHours() + '|' + r.dataset;
       hourBlocks[key] = (hourBlocks[key]||0) + 1;
     }
   });
   const fmtHourKey = k => {
-    const [dk, hh] = k.split('T');
+    const [rest, ds] = k.split('|');
+    const [dk, hh] = rest.split('T');
     const [ky,km,kd] = dk.split('-').map(Number);
     const h = +hh;
     const lbl = hr => ((hr%12)||12) + (hr<12?' AM':' PM');
-    return new Date(ky,km-1,kd).toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric', year:'2-digit'}) + ', ' + lbl(h) + '–' + lbl((h+1)%24);
+    return ds + ' · ' + new Date(ky,km-1,kd).toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric', year:'2-digit'}) + ', ' + lbl(h) + '–' + lbl((h+1)%24);
   };
   const topHours = Object.keys(hourBlocks).sort((a,b)=>hourBlocks[b]-hourBlocks[a]).slice(0,10);
   const thMax = Math.max(0, ...topHours.map(k=>hourBlocks[k]));
@@ -3393,6 +3731,12 @@ function goToTab(name){
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
+// Static (not data-driven) — the Map tab just embeds the configured Google My Maps map,
+// so this only needs to run once at boot and again whenever the mid changes in Settings.
+function renderMapEmbed(){
+  document.getElementById('map-embed').src = 'https://www.google.com/maps/d/embed?mid=' + encodeURIComponent(CFG.mapMid);
+}
+
 /* Market share: complaint numbers are "YYYY-NNNNN" (e.g. 2026-008145 = year 2026, sequence
    8145), issued sequentially citywide — but the sequence's digit-width varies by year (2022
    used 5 digits, 2025/2026 use 6), so the year and sequence are extracted as separate regex
@@ -3526,14 +3870,15 @@ function renderDashboard(){
     </div>`;
   }).join('') || '<div class="empty">No activity recorded yet.</div>';
 
-  // ---- Filing Pace: total submissions per calendar week (Sun-Sat, same week convention as
-  // Calendar/Top Weeks elsewhere in the app), last 8 weeks. ----
+  // ---- Weekly Totals: total incidents per calendar week (Sun-Sat), same incident-date
+  // bucketing (calDayBuckets) the Calendar tab's week-total row uses, so the two agree. ----
+  const fpByDay = calDayBuckets(all);
   const fpWeekTotals = {};
-  all.forEach(r => {
-    const d = parseDate(r.dateSubmitted);
-    if(!d) return;
-    const sun = new Date(d); sun.setDate(d.getDate() - d.getDay()); sun.setHours(0,0,0,0);
-    fpWeekTotals[localDayKey(sun)] = (fpWeekTotals[localDayKey(sun)] || 0) + 1;
+  Object.keys(fpByDay).forEach(key => {
+    const [y,m,d] = key.split('-').map(Number);
+    const dObj = new Date(y, m-1, d);
+    const sun = new Date(dObj); sun.setDate(dObj.getDate() - dObj.getDay()); sun.setHours(0,0,0,0);
+    fpWeekTotals[localDayKey(sun)] = (fpWeekTotals[localDayKey(sun)] || 0) + fpByDay[key].length;
   });
   const weeks = Object.keys(fpWeekTotals).sort().slice(-8).map(k => {
     const [y,m,d] = k.split('-').map(Number);
@@ -3607,6 +3952,7 @@ function renderChanges(){
       <div class="when">${new Date(c.ts).toLocaleString()}</div>
       <div class="what">
         <span class="badge chg-${c.type}">${CHANGE_LABELS[c.type]||c.type}</span>
+        ${datasetBadge(c.dataset)}
         <b>${esc(c.summons)}</b> · ${esc(c.company)}
         ${c.type==='new'
           ? `<div class="delta">Newly appeared in the sheet.</div>`
@@ -3648,8 +3994,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 document.getElementById('home-search').addEventListener('input', debounce(renderHome, 200));
+document.getElementById('home-filter-dataset').addEventListener('change', renderHome);
 document.getElementById('home-filter-status').addEventListener('change', renderHome);
 document.getElementById('home-expand').addEventListener('change', renderHome);
+document.getElementById('cal-filter-dataset').addEventListener('change', renderCalendar);
 document.getElementById('cal-prev').addEventListener('click', ()=>{ calUserNavigated = true; calCursor.setMonth(calCursor.getMonth()-1); renderCalendar(); });
 document.getElementById('cal-next').addEventListener('click', ()=>{ calUserNavigated = true; calCursor.setMonth(calCursor.getMonth()+1); renderCalendar(); });
 document.getElementById('cal-today').addEventListener('click', ()=>{ calUserNavigated = true; calCursor = new Date(); renderCalendar(); });
@@ -3677,37 +4025,51 @@ document.getElementById('btn-rules').addEventListener('click', ()=>openModal('ru
 document.getElementById('btn-export-email').addEventListener('click', ()=>{ renderExportModal(); openModal('export-overlay'); });
 document.getElementById('btn-settings').addEventListener('click', ()=>{
   document.getElementById('cfg-pubid').value = CFG.pubId;
-  document.getElementById('cfg-gid-master').value = CFG.gids.master;
+  document.getElementById('cfg-gid-atnyc').value = CFG.gids.atnyc;
+  document.getElementById('cfg-gid-at').value = CFG.gids.at;
+  document.getElementById('cfg-gid-mbt').value = CFG.gids.mbt;
   document.getElementById('cfg-gid-requested').value = CFG.gids.requested;
   document.getElementById('cfg-gid-paid').value = CFG.gids.paid;
   document.getElementById('cfg-gid-disqreasons').value = CFG.gids.disqreasons;
-  document.getElementById('cfg-vendor-code').value = CFG.vendor.code;
-  document.getElementById('cfg-vendor-name').value = CFG.vendor.name;
-  document.getElementById('cfg-vendor-address').value = CFG.vendor.address;
+  document.getElementById('cfg-map-mid').value = CFG.mapMid;
+  for(const k of ['at','atnyc','mbt']){
+    document.getElementById(`cfg-${k}-code`).value = CFG.vendors[k].code;
+    document.getElementById(`cfg-${k}-name`).value = CFG.vendors[k].name;
+    document.getElementById(`cfg-${k}-address`).value = CFG.vendors[k].address;
+  }
   document.getElementById('cfg-enrich').value = CFG.enrich;
   openModal('settings-overlay');
 });
 document.getElementById('btn-save-settings').addEventListener('click', () => {
+  const vendors = {};
+  for(const k of ['at','atnyc','mbt']){
+    vendors[k] = {
+      code: document.getElementById(`cfg-${k}-code`).value.trim(),
+      name: document.getElementById(`cfg-${k}-name`).value.trim(),
+      address: document.getElementById(`cfg-${k}-address`).value.trim()
+    };
+  }
   CFG = {
     pubId: document.getElementById('cfg-pubid').value.trim(),
     gids: {
-      master: document.getElementById('cfg-gid-master').value.trim(),
+      atnyc: document.getElementById('cfg-gid-atnyc').value.trim(),
+      at: document.getElementById('cfg-gid-at').value.trim(),
+      mbt: document.getElementById('cfg-gid-mbt').value.trim(),
       requested: document.getElementById('cfg-gid-requested').value.trim(),
       paid: document.getElementById('cfg-gid-paid').value.trim(),
       disqreasons: document.getElementById('cfg-gid-disqreasons').value.trim()
     },
-    vendor: {
-      code: document.getElementById('cfg-vendor-code').value.trim(),
-      name: document.getElementById('cfg-vendor-name').value.trim(),
-      address: document.getElementById('cfg-vendor-address').value.trim()
-    },
+    vendors,
+    mapMid: document.getElementById('cfg-map-mid').value.trim() || DEFAULTS.mapMid,
     enrich: document.getElementById('cfg-enrich').value
   };
   saveConfig(CFG);
   closeModal('settings-overlay');
+  renderMapEmbed();
   loadAllData(false);
 });
 document.getElementById('btn-refresh').addEventListener('click', () => { loadAllData(false); });
+document.getElementById('btn-really-good-refresh').addEventListener('click', runReallyGoodRefresh);
 document.getElementById('btn-clear-cache').addEventListener('click', () => {
   localStorage.removeItem(LS_DATA);
   appData = { merged: [], lastRefresh: null, changeLog: [], lastDiffCount: 0 };
@@ -3725,6 +4087,8 @@ if(isFileProtocol){
 }
 
 (async function boot(){
+  try{ localStorage.removeItem('truckNarcPriors'); }catch(e){} // leftover from the removed citywide-priors feature
+  renderMapEmbed();
   await loadCache();
   if(appData.merged.length){
     setStatus('Showing cached data — refreshing in background…', true);
